@@ -1,6 +1,6 @@
 {
-  "name": "Mi Bolsillo",
-  "short_name": "Mi Bolsillo",
+  "name": "Gastos",
+  "short_name": "Gastos",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#fdf2f8",

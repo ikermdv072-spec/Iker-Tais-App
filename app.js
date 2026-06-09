@@ -123,6 +123,75 @@ async function verifyPasskey(username) {
 }
 
 // ════════════════════════════════════════════════════════════
+// SUPABASE SYNC
+// ════════════════════════════════════════════════════════════
+
+const SUPA_URL = "https://oiowerpoyfwrgtupgqqc.supabase.co";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pb3dlcnBveWZ3cmd0dXBncXFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzgyNDUsImV4cCI6MjA5NjYxNDI0NX0.bfS7jYjEhNwNexGzae5gpElhvDsTqbH40lNvZPZcAHE";
+
+const SUPA_HEADERS = {
+  "Content-Type": "application/json",
+  "apikey": SUPA_KEY,
+  "Authorization": `Bearer ${SUPA_KEY}`,
+};
+
+async function syncUpload() {
+  const dataKeys = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
+  const rows = dataKeys
+    .map(k => ({ user_key: k, data: load(k, null), synced_at: new Date().toISOString() }))
+    .filter(r => r.data !== null);
+
+  const res = await fetch(`${SUPA_URL}/rest/v1/sync_data`, {
+    method: "POST",
+    headers: { ...SUPA_HEADERS, "Prefer": "resolution=merge-duplicates" },
+    body: JSON.stringify(rows),
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+}
+
+async function syncDownload() {
+  const dataKeys = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
+  const keyList  = dataKeys.map(k => `"${k}"`).join(",");
+
+  const res = await fetch(`${SUPA_URL}/rest/v1/sync_data?user_key=in.(${keyList})`, {
+    headers: SUPA_HEADERS,
+  });
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+
+  const rows = await res.json();
+  if (!rows.length) throw new Error("Sin datos remotos para este usuario.");
+
+  rows.forEach(row => localStorage.setItem(row.user_key, JSON.stringify(row.data)));
+
+  expenses  = load(KEY.expenses,  []);
+  income    = load(KEY.income,    []);
+  budgets   = load(KEY.budgets,   {});
+  recurring = load(KEY.recurring, []);
+  settings  = load(KEY.settings,  { currency: "BOB", locale: "es-BO" });
+  loans     = load(KEY.loans,     []);
+  renderAll();
+}
+
+// Debounced auto-upload: waits 2s after last change then uploads silently
+let _syncTimer = null;
+function autoSync() {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(async () => {
+    try { await syncUpload(); } catch { /* silent — local data is always safe */ }
+  }, 2000);
+}
+
+// Called once at app start: pulls remote data if available
+async function syncOnStart() {
+  try {
+    await syncDownload();
+  } catch (e) {
+    // "Sin datos remotos" means first use on this device — that's fine, keep local data
+    if (!e.message.includes("Sin datos")) console.warn("Sync start:", e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════════
 // DATA MODEL
 // ════════════════════════════════════════════════════════════
 
@@ -168,6 +237,9 @@ let loans     = [];   // { id, person, amount, date, note, createdAt, repayments
 let currentMonth   = "";
 let selectedExpCat = "Comida";
 let selectedIncCat = "Familiar";
+
+// Loan payment modal state
+let paymentModalLoanId = null;
 
 // ════════════════════════════════════════════════════════════
 // UTILS
@@ -413,40 +485,11 @@ function renderLoans() {
         <button class="btn-loan-settle" type="button">Saldado ✓</button>
         <button class="btn-loan-del" type="button">✕</button>
       </div>
-      <div class="loan-pay-form" hidden>
-        <input class="loan-pay-amount" type="number" inputmode="decimal"
-               min="0.01" step="0.01" placeholder="Monto recibido" autocomplete="off">
-        <input class="loan-pay-date" type="date" value="${todayIso()}">
-        <div class="loan-pay-row">
-          <button class="btn-confirm-pay btn-submit" type="button">Confirmar pago</button>
-          <button class="btn-cancel-pay" type="button">Cancelar</button>
-        </div>
-      </div>
     `;
 
-    const payForm = div.querySelector(".loan-pay-form");
-
-    // Toggle pay form
+    // Open payment modal
     div.querySelector(".btn-loan-pay").addEventListener("click", () => {
-      payForm.hidden = !payForm.hidden;
-      if (!payForm.hidden) div.querySelector(".loan-pay-amount").focus();
-    });
-
-    div.querySelector(".btn-cancel-pay").addEventListener("click", () => {
-      payForm.hidden = true;
-    });
-
-    // Confirm partial payment
-    div.querySelector(".btn-confirm-pay").addEventListener("click", () => {
-      const amount = Number(div.querySelector(".loan-pay-amount").value);
-      const date   = div.querySelector(".loan-pay-date").value;
-      if (!amount || amount <= 0) return;
-      const idx = loans.findIndex(l => l.id === loan.id);
-      if (idx === -1) return;
-      loans[idx].repayments.push({ id: crypto.randomUUID(), amount, date, createdAt: Date.now() });
-      if (loanPending(loans[idx]) <= 0) loans[idx].settled = true;
-      persist(KEY.loans, loans);
-      renderLoans();
+      openPaymentModal(loan);
     });
 
     // Mark fully settled
@@ -465,6 +508,23 @@ function renderLoans() {
 
     list.append(div);
   });
+}
+
+// ── Payment modal ─────────────────────────────────────────────
+function openPaymentModal(loan) {
+  paymentModalLoanId = loan.id;
+  const pending = loanPending(loan);
+  document.getElementById("paymentModalTitle").textContent = `Pago de ${loan.person}`;
+  document.getElementById("paymentPendingAmt").textContent = fmt(pending);
+  document.getElementById("paymentAmount").value = "";
+  document.getElementById("paymentDate").value   = todayIso();
+  document.getElementById("paymentModal").hidden = false;
+  document.getElementById("paymentAmount").focus();
+}
+
+function closePaymentModal() {
+  document.getElementById("paymentModal").hidden = true;
+  paymentModalLoanId = null;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -502,6 +562,7 @@ function buildCatFilter() {
 
 function openSettings() {
   document.getElementById("currencySelect").value = settings.currency || "BOB";
+  document.getElementById("syncStatus").hidden = true;
   buildBudgetInputs();
   buildRecurringList();
   const recCat = document.getElementById("recCategory");
@@ -539,7 +600,7 @@ function closeSettings() {
   settings.locale   = localeMap[cur] || "es";
   persist(KEY.settings, settings);
   document.getElementById("settingsModal").hidden = true;
-  renderAll();
+  renderAll(); autoSync();
 }
 
 function buildBudgetInputs() {
@@ -572,6 +633,13 @@ function buildRecurringList() {
 }
 
 // ═══ Export ═══════════════════════════════════════════════════
+function showSyncStatus(msg, type) {
+  const el = document.getElementById("syncStatus");
+  el.textContent = msg;
+  el.className = "sync-status " + type;
+  el.hidden = false;
+}
+
 function exportCsv() {
   const all = [
     ...expenses.map(e => ({ ...e, tipo: "gasto" })),
@@ -582,7 +650,7 @@ function exportCsv() {
   const csv    = [header, ...rows].map(r => r.join(",")).join("\n");
   const blob   = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url    = URL.createObjectURL(blob);
-  Object.assign(document.createElement("a"), { href: url, download: `mi-bolsillo-${currentUser}-${todayIso()}.csv` }).click();
+  Object.assign(document.createElement("a"), { href: url, download: `gastos-${currentUser}-${todayIso()}.csv` }).click();
   URL.revokeObjectURL(url);
 }
 
@@ -601,9 +669,6 @@ function startApp(username) {
   settings  = load(KEY.settings,  { currency: "BOB", locale: "es-BO" });
   loans     = load(KEY.loans,     []);
 
-  document.getElementById("loginScreen").hidden = true;
-  document.getElementById("appRoot").hidden      = false;
-
   document.getElementById("userInitial").textContent    = username.charAt(0).toUpperCase();
   document.getElementById("expDate").value              = todayIso();
   document.getElementById("incDate").value              = todayIso();
@@ -616,6 +681,21 @@ function startApp(username) {
   if (!startApp._listenersAttached) { attachAppListeners(); startApp._listenersAttached = true; }
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+  // Pull latest data from Supabase (silent if offline or first use)
+  syncOnStart();
+
+  // Transition: fade out login, slide in app
+  const loginEl = document.getElementById("loginScreen");
+  const appEl   = document.getElementById("appRoot");
+
+  appEl.hidden = false;
+  appEl.classList.add("app-entering");
+  appEl.addEventListener("animationend", () => appEl.classList.remove("app-entering"), { once: true });
+
+  loginEl.classList.add("exit");
+  loginEl.addEventListener("animationend", () => { loginEl.hidden = true; }, { once: true });
+
   renderAll();
 }
 
@@ -652,7 +732,7 @@ function attachAppListeners() {
       note: document.getElementById("expNote").value.trim(), createdAt: Date.now() });
     persist(KEY.expenses, expenses);
     document.getElementById("expAmount").value = document.getElementById("expNote").value = "";
-    renderAll();
+    renderAll(); autoSync();
   });
 
   // Income form
@@ -665,7 +745,7 @@ function attachAppListeners() {
       note: document.getElementById("incNote").value.trim(), createdAt: Date.now() });
     persist(KEY.income, income);
     document.getElementById("incAmount").value = document.getElementById("incNote").value = "";
-    renderAll();
+    renderAll(); autoSync();
   });
 
   document.getElementById("catFilter").addEventListener("change", renderAll);
@@ -719,6 +799,30 @@ function attachAppListeners() {
     document.getElementById("removeBiometricBtn").hidden = true;
   });
 
+  // ── Supabase sync ─────────────────────────────────────────
+  document.getElementById("syncUpBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("syncUpBtn");
+    btn.disabled = true; btn.style.opacity = ".6";
+    try {
+      await syncUpload();
+      showSyncStatus("Datos subidos correctamente ✓", "ok");
+    } catch (err) {
+      showSyncStatus("Error al subir: " + err.message, "err");
+    } finally { btn.disabled = false; btn.style.opacity = ""; }
+  });
+
+  document.getElementById("syncDownBtn").addEventListener("click", async () => {
+    if (!confirm("¿Reemplazar los datos locales con los de Supabase?")) return;
+    const btn = document.getElementById("syncDownBtn");
+    btn.disabled = true; btn.style.opacity = ".6";
+    try {
+      await syncDownload();
+      showSyncStatus("Datos bajados correctamente ✓", "ok");
+    } catch (err) {
+      showSyncStatus("Error al bajar: " + err.message, "err");
+    } finally { btn.disabled = false; btn.style.opacity = ""; }
+  });
+
   // Logout
   document.getElementById("logoutBtn").addEventListener("click", () => {
     if (!confirm(`¿Cerrar sesión de ${currentUser}?`)) return;
@@ -757,7 +861,35 @@ function attachAppListeners() {
     document.getElementById("loanPerson").value = "";
     document.getElementById("loanNote").value   = "";
     document.getElementById("newLoanForm").hidden = true;
-    renderLoans();
+    renderLoans(); autoSync();
+  });
+
+  // ── Payment modal handlers ─────────────────────────────────
+
+  document.getElementById("closePaymentModal").addEventListener("click", closePaymentModal);
+  document.getElementById("paymentModal").addEventListener("click", e => {
+    if (e.target === e.currentTarget) closePaymentModal();
+  });
+
+  document.getElementById("confirmPaymentBtn").addEventListener("click", () => {
+    const amount = Number(document.getElementById("paymentAmount").value);
+    const date   = document.getElementById("paymentDate").value;
+    if (!amount || amount <= 0 || !paymentModalLoanId) return;
+    const idx = loans.findIndex(l => l.id === paymentModalLoanId);
+    if (idx === -1) { closePaymentModal(); return; }
+    loans[idx].repayments.push({ id: crypto.randomUUID(), amount, date, createdAt: Date.now() });
+    if (loanPending(loans[idx]) <= 0) loans[idx].settled = true;
+    persist(KEY.loans, loans);
+    closePaymentModal();
+    renderLoans(); autoSync();
+  });
+
+  document.getElementById("settleFullBtn").addEventListener("click", () => {
+    if (!paymentModalLoanId) return;
+    const idx = loans.findIndex(l => l.id === paymentModalLoanId);
+    if (idx !== -1) { loans[idx].settled = true; persist(KEY.loans, loans); }
+    closePaymentModal();
+    renderLoans(); autoSync();
   });
 }
 
@@ -783,12 +915,13 @@ document.getElementById("loginForm").addEventListener("submit", e => {
   const user = document.getElementById("loginUser").value.trim();
   const pass = document.getElementById("loginPass").value;
   if (!tryLogin(user, pass)) { document.getElementById("loginError").hidden = false; return; }
+  document.getElementById("loginError").hidden = true;
   saveSession(user); startApp(user);
 });
 
 document.getElementById("biometricBtn").addEventListener("click", async () => {
-  const btn     = document.getElementById("biometricBtn");
-  const errEl   = document.getElementById("biometricError");
+  const btn      = document.getElementById("biometricBtn");
+  const errEl    = document.getElementById("biometricError");
   const lastUser = getLastUser();
   if (!lastUser) { showPasswordMode(); return; }
   btn.disabled = true; btn.style.opacity = ".6"; errEl.hidden = true;
@@ -813,35 +946,11 @@ document.getElementById("switchUserBtn").addEventListener("click", () => {
   document.getElementById("loginUser").focus();
 });
 
-document.getElementById("showRegisterBtn").addEventListener("click", () => {
-  document.getElementById("loginPanel").hidden    = true;
-  document.getElementById("registerPanel").hidden = false;
-});
-
-document.getElementById("backToLoginBtn").addEventListener("click", () => {
-  document.getElementById("registerPanel").hidden = true;
-  document.getElementById("loginPanel").hidden    = false;
-});
-
-document.getElementById("registerForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const user  = document.getElementById("regUser").value.trim();
-  const pass  = document.getElementById("regPass").value;
-  const pass2 = document.getElementById("regPass2").value;
-  const errEl = document.getElementById("registerError");
-  if (!user || user.length < 2) { errEl.textContent = "Mínimo 2 caracteres."; errEl.hidden = false; return; }
-  if (pass.length < 4) { errEl.textContent = "Contraseña mínimo 4 caracteres."; errEl.hidden = false; return; }
-  if (pass !== pass2)  { errEl.textContent = "Las contraseñas no coinciden.";   errEl.hidden = false; return; }
-  const err = createAccount(user, pass);
-  if (err) { errEl.textContent = err; errEl.hidden = false; return; }
-  saveSession(user); startApp(user);
-});
-
 // ════════════════════════════════════════════════════════════
 // ENTRY POINT
 // ════════════════════════════════════════════════════════════
 
-// Pre-create your two accounts (only runs if they don't exist yet)
+// Pre-create the two accounts (only runs if they don't exist yet)
 (function seedAccounts() {
   const users = loadUsers();
   if (!users["taisiña"])  createAccount("Taisiña",  "Taisonlybirdies1");
