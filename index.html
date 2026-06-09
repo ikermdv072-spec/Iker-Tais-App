@@ -167,23 +167,24 @@
         </div>
       </section>
 
-      <!-- Préstamos -->
+      <!-- Deudas -->
       <section class="panel" id="loansPanel">
         <div class="list-header">
-          <h2 class="panel-title">Préstamos</h2>
-          <button id="addLoanToggle" class="btn-add-small" type="button">+ Nuevo</button>
+          <h2 class="panel-title">💸 Deudas pendientes</h2>
+          <button id="addLoanToggle" class="btn-add-small" type="button">+ Anotar</button>
         </div>
+        <p class="loans-hint">Anotá a quién le prestaste. Cuando te paguen, tocá <strong>Recibí pago</strong> para descontar.</p>
         <div id="newLoanForm" class="add-form" hidden>
           <div class="amount-field">
             <input id="loanAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
           </div>
-          <input id="loanPerson" type="text" placeholder="¿A quién le prestás?" autocomplete="off">
+          <input id="loanPerson" type="text" placeholder="¿Quién te debe? (nombre)" autocomplete="off">
           <input id="loanNote"   type="text" placeholder="Nota (opcional)" autocomplete="off">
           <input id="loanDate"   type="date">
-          <button id="saveLoanBtn" class="btn-submit" type="button">Guardar préstamo</button>
+          <button id="saveLoanBtn" class="btn-submit" type="button">Guardar deuda</button>
         </div>
         <div id="loanList"></div>
-        <p id="loansEmpty" class="empty">Sin préstamos activos.</p>
+        <p id="loansEmpty" class="empty">Sin deudas pendientes.</p>
       </section>
 
       <!-- Movimientos -->
@@ -261,8 +262,8 @@
       <div class="modal-box">
         <div class="modal-header">
           <div>
-            <h2 id="paymentModalTitle">Registrar pago</h2>
-            <p class="payment-sub">Pendiente: <strong id="paymentPendingAmt"></strong></p>
+            <h2 id="paymentModalTitle">Recibí pago</h2>
+            <p class="payment-sub">Deuda pendiente: <strong id="paymentPendingAmt"></strong></p>
           </div>
           <button id="closePaymentModal" class="icon-btn dark" type="button">&#10005;</button>
         </div>
@@ -272,8 +273,8 @@
                    min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
           </div>
           <input id="paymentDate" type="date" class="payment-date-input">
-          <button id="confirmPaymentBtn" class="btn-submit" type="button">Confirmar pago</button>
-          <button id="settleFullBtn"     class="btn-settle-full" type="button">Marcar como saldado total ✓</button>
+          <button id="confirmPaymentBtn" class="btn-submit" type="button">Descontar de la deuda</button>
+          <button id="settleFullBtn"     class="btn-settle-full" type="button">Deuda saldada por completo ✓</button>
         </div>
       </div>
     </div>

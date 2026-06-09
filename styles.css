@@ -323,6 +323,19 @@ body {
 .ov-loans-text strong { font-size: 1rem; font-weight: 800; letter-spacing: -.02em; }
 .ov-loans-chevron { font-size: 1.3rem; opacity: .7; }
 
+/* ── Loans hint ──────────────────────────────────────────── */
+.loans-hint {
+  font-size: .78rem;
+  color: var(--muted);
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 8px 11px;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.loans-hint strong { color: var(--primary); }
+
 /* ── Add loan small button ────────────────────────────────── */
 .btn-add-small {
   background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);

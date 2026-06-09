@@ -126,8 +126,8 @@ async function verifyPasskey(username) {
 // SUPABASE SYNC
 // ════════════════════════════════════════════════════════════
 
-const SUPA_URL = "https://oiowerpoyfwrgtupgqqc.supabase.co";
-const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pb3dlcnBveWZ3cmd0dXBncXFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzgyNDUsImV4cCI6MjA5NjYxNDI0NX0.bfS7jYjEhNwNexGzae5gpElhvDsTqbH40lNvZPZcAHE";
+const SUPA_URL = "TU_URL_SUPABASE";   // ej: https://xxxx.supabase.co
+const SUPA_KEY = "TU_ANON_KEY";        // tu anon key de Supabase
 
 const SUPA_HEADERS = {
   "Content-Type": "application/json",
@@ -135,7 +135,12 @@ const SUPA_HEADERS = {
   "Authorization": `Bearer ${SUPA_KEY}`,
 };
 
+function supaConfigured() {
+  return SUPA_URL && SUPA_URL !== "TU_URL_SUPABASE" && SUPA_KEY && SUPA_KEY !== "TU_ANON_KEY";
+}
+
 async function syncUpload() {
+  if (!supaConfigured()) return;
   const dataKeys = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
   const rows = dataKeys
     .map(k => ({ user_key: k, data: load(k, null), synced_at: new Date().toISOString() }))
@@ -150,6 +155,7 @@ async function syncUpload() {
 }
 
 async function syncDownload() {
+  if (!supaConfigured()) throw new Error("Supabase no configurado.");
   const dataKeys = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
   const keyList  = dataKeys.map(k => `"${k}"`).join(",");
 
@@ -481,7 +487,7 @@ function renderLoans() {
         <div class="loan-progress-fill" style="width:${pct}%"></div>
       </div>
       <div class="loan-btns">
-        <button class="btn-loan-pay" type="button">Registrar pago</button>
+        <button class="btn-loan-pay" type="button">💵 Recibí pago</button>
         <button class="btn-loan-settle" type="button">Saldado ✓</button>
         <button class="btn-loan-del" type="button">✕</button>
       </div>
@@ -514,7 +520,7 @@ function renderLoans() {
 function openPaymentModal(loan) {
   paymentModalLoanId = loan.id;
   const pending = loanPending(loan);
-  document.getElementById("paymentModalTitle").textContent = `Pago de ${loan.person}`;
+  document.getElementById("paymentModalTitle").textContent = `${loan.person} te pagó`;
   document.getElementById("paymentPendingAmt").textContent = fmt(pending);
   document.getElementById("paymentAmount").value = "";
   document.getElementById("paymentDate").value   = todayIso();
