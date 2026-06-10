@@ -76,13 +76,13 @@ button:disabled { cursor: not-allowed; }
 .auth-form { display: grid; gap: 10px; }
 .auth-form input, .field, .big-num-field input, .modal select, .view-topbar select {
   width: 100%;
-  min-height: 46px;
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #ffffff;
   color: var(--text);
   outline: none;
-  padding: 11px 12px;
+  padding: 10px 12px;
 }
 .auth-form input {
   border-color: rgba(255, 255, 255, 0.22);
@@ -421,28 +421,32 @@ input:focus, select:focus {
 }
 .sheet-handle { width: 44px; height: 4px; margin: 0 auto 4px; border-radius: 999px; background: #cbd8d4; }
 .add-type-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 4px; border-radius: var(--radius); background: var(--surface-soft); }
-.type-btn { min-height: 42px; border: 0; border-radius: var(--radius); background: transparent; color: var(--muted); font-weight: 800; }
+.type-btn { min-height: 40px; border: 0; border-radius: var(--radius); background: transparent; color: var(--muted); font-weight: 800; font-size: 0.95rem; }
 .type-btn.active.exp { background: #fff1f0; color: var(--expense); }
 .type-btn.active.inc { background: #ecfdf5; color: var(--income); }
 .add-num-row, .big-num-field {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: 4px 14px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-soft);
+  transition: border-color 0.15s;
 }
 .add-curr { color: var(--muted); font-weight: 800; }
 .add-num-row input, .big-num-field input {
-  min-height: 56px;
+  min-height: 52px;
   border: 0;
+  outline: none;
   background: transparent;
   box-shadow: none;
   font-size: 2rem;
   font-weight: 850;
   padding: 0;
 }
+.add-num-row input:focus, .big-num-field input:focus { box-shadow: none; }
+.add-num-row:focus-within, .big-num-field:focus-within { border-color: var(--primary); }
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
 .chip {
   flex: 0 0 auto;
@@ -674,11 +678,15 @@ input:focus, select:focus {
 [data-theme="tais"] #appRoot input::placeholder,
 [data-theme="iker"] #appRoot input::placeholder { color: var(--faint); }
 [data-theme="tais"] input:focus, [data-theme="tais"] select:focus {
-  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(217,70,239,0.22);
+  border-color: var(--primary); box-shadow: 0 0 0 2px rgba(217,70,239,0.28);
 }
 [data-theme="iker"] input:focus, [data-theme="iker"] select:focus {
-  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,106,245,0.22);
+  border-color: var(--primary); box-shadow: 0 0 0 2px rgba(124,106,245,0.28);
 }
+[data-theme="tais"] .add-num-row:focus-within,
+[data-theme="tais"] .big-num-field:focus-within { box-shadow: 0 0 0 2px rgba(217,70,239,0.3); }
+[data-theme="iker"] .add-num-row:focus-within,
+[data-theme="iker"] .big-num-field:focus-within { box-shadow: 0 0 0 2px rgba(124,106,245,0.3); }
 
 [data-theme="tais"] .chip, [data-theme="iker"] .chip {
   background: var(--surface); border-color: var(--border); color: var(--muted);
@@ -826,16 +834,16 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Bottom sheet — slide-up ── */
 .sheet-body {
-  border-radius: 28px 28px 0 0;
-  padding: 2px 16px calc(26px + var(--safe-b));
-  gap: 14px;
+  border-radius: 24px 24px 0 0;
+  padding: 0 16px calc(20px + var(--safe-b));
+  gap: 10px;
   max-height: 82dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 .sheet-handle {
-  width: 36px; height: 5px;
-  margin: 10px auto 6px;
+  width: 36px; height: 4px;
+  margin: 8px auto 4px;
   border-radius: 999px;
   background: rgba(0,0,0,0.13);
 }
