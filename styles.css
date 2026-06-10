@@ -836,17 +836,18 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .sheet-body {
   border-radius: 24px 24px 0 0;
   padding: 0 16px calc(20px + var(--safe-b));
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   max-height: 82dvh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-.sheet-handle {
-  width: 36px; height: 4px;
-  margin: 8px auto 4px;
-  border-radius: 999px;
-  background: rgba(0,0,0,0.13);
-}
+/* full-width rows; note+date auto-place side by side */
+.sheet-handle { grid-column: 1 / -1; width: 36px; height: 4px; margin: 8px auto 4px; border-radius: 999px; background: rgba(0,0,0,0.13); }
+.add-type-row { grid-column: 1 / -1; }
+.add-num-row  { grid-column: 1 / -1; }
+#addChips     { grid-column: 1 / -1; }
+#addSaveBtn   { grid-column: 1 / -1; }
 @keyframes sheetSlideUp {
   from { opacity: 0; transform: translateX(-50%) translateY(22px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0);    }
@@ -856,6 +857,13 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 }
 [data-theme="tais"] .sheet-handle,
 [data-theme="iker"] .sheet-handle { background: var(--border); }
+[data-theme="tais"] .sheet-body,
+[data-theme="iker"] .sheet-body { box-shadow: 0 -16px 40px rgba(0,0,0,0.7); }
+/* Active type buttons: use transparent tints instead of light solid fills */
+[data-theme="tais"] .type-btn.active.exp,
+[data-theme="iker"] .type-btn.active.exp { background: rgba(248,113,113,0.18); }
+[data-theme="tais"] .type-btn.active.inc,
+[data-theme="iker"] .type-btn.active.inc { background: rgba(63,185,80,0.15); }
 
 /* ── Modal ── */
 .modal-box { border-radius: 24px 24px 0 0; }
