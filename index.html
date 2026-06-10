@@ -10,22 +10,14 @@
 </head>
 <body>
 
-  <!-- ════════════════════════════════════
-       LOGIN SCREEN
-  ════════════════════════════════════ -->
+  <!-- ══════════════════════════════════
+       LOGIN
+  ══════════════════════════════════ -->
   <div id="loginScreen" class="login-screen">
-
-    <!-- Photo background -->
     <div class="login-bg">
-      <img src="photo.jpg" alt="" class="login-bg-img"
-           onerror="this.style.display='none'">
+      <img src="photo.jpg" alt="" class="login-bg-img" onerror="this.style.display='none'">
     </div>
-
-    <!-- Content sits at the bottom over the photo -->
     <div class="login-content">
-      <div class="login-hero"></div>
-
-      <!-- Biometric mode -->
       <div id="biometricMode" hidden>
         <div class="bio-user">
           <div class="bio-initial" id="bioInitial">?</div>
@@ -33,8 +25,7 @@
         </div>
         <button id="biometricBtn" class="btn-biometric" type="button">
           <svg class="faceid-svg" viewBox="0 0 24 24" fill="none">
-            <path d="M7 3H5a2 2 0 00-2 2v2M17 3h2a2 2 0 012 2v2M7 21H5a2 2 0 01-2-2v-2M17 21h2a2 2 0 002-2v-2"
-                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M7 3H5a2 2 0 00-2 2v2M17 3h2a2 2 0 012 2v2M7 21H5a2 2 0 01-2-2v-2M17 21h2a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             <circle cx="9" cy="10.5" r="1.1" fill="currentColor"/>
             <circle cx="15" cy="10.5" r="1.1" fill="currentColor"/>
             <path d="M9 15.5c.8 1.4 5.2 1.4 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
@@ -48,83 +39,78 @@
           <button id="switchUserBtn" class="btn-text-xs" type="button">Otro usuario</button>
         </div>
       </div>
-
-      <!-- Password mode -->
       <div id="passwordMode">
         <form id="loginForm" class="auth-form">
-          <input id="loginUser" type="text" placeholder="Usuario"
-                 autocomplete="username" spellcheck="false" required>
-          <input id="loginPass" type="password" placeholder="Contraseña"
-                 autocomplete="current-password" required>
+          <input id="loginUser" type="text"     placeholder="Usuario"    autocomplete="username"         spellcheck="false" required>
+          <input id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password" required>
           <button class="btn-auth" type="submit">Entrar</button>
           <p id="loginError" class="auth-error" hidden>Usuario o contraseña incorrectos.</p>
         </form>
       </div>
     </div>
+  </div>
 
-  </div><!-- /loginScreen -->
 
-
-  <!-- ════════════════════════════════════
+  <!-- ══════════════════════════════════
        APP
-  ════════════════════════════════════ -->
+  ══════════════════════════════════ -->
   <div id="appRoot" hidden>
 
+    <!-- Topbar -->
     <header class="topbar">
-      <div class="topbar-left">
-        <div class="month-nav">
-          <button id="prevMonth" class="nav-btn" type="button">&#8249;</button>
-          <span id="monthLabel"></span>
-          <button id="nextMonth" class="nav-btn" type="button">&#8250;</button>
-        </div>
+      <div class="month-nav">
+        <button id="prevMonth" class="nav-arrow" type="button">‹</button>
+        <span id="monthLabel"></span>
+        <button id="nextMonth" class="nav-arrow" type="button">›</button>
       </div>
       <div class="topbar-right">
-        <button id="logoutBtn" class="user-badge" type="button" title="Cerrar sesión">
+        <button id="exportBtn" class="topbar-icon" type="button" title="Exportar CSV">
+          <svg viewBox="0 0 20 20" fill="none"><path d="M10 3v9m0 0L7 9m3 3l3-3M3 14v2a2 2 0 002 2h10a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="settingsBtn" class="avatar-btn" type="button">
           <span id="userInitial">?</span>
         </button>
-        <button id="settingsBtn" class="icon-btn" type="button" title="Configuración">&#9881;</button>
-        <button id="exportBtn"   class="icon-btn" type="button" title="Exportar CSV">CSV</button>
       </div>
     </header>
 
-    <main class="app">
+    <!-- Views -->
+    <div class="views-wrap">
 
-      <!-- Overview -->
-      <section class="overview">
-        <div class="ov-hero">
-          <div class="ov-hero-top">
-            <span class="ov-eyebrow">Balance del mes</span>
-            <strong class="ov-balance" id="balanceAmt">$0</strong>
+      <!-- INICIO -->
+      <section id="view-inicio" class="view active">
+
+        <div class="hero-card" id="heroCard">
+          <span class="hero-eyebrow">Balance del mes</span>
+          <strong class="hero-balance" id="balanceAmt">$0</strong>
+          <div class="hero-row">
+            <div class="hero-stat"><span>Ingresos</span><b id="incomeAmt">$0</b></div>
+            <div class="hero-sep"></div>
+            <div class="hero-stat"><span>Gastos</span><b id="expenseAmt">$0</b></div>
           </div>
-          <div class="ov-hero-stats">
-            <div class="ov-hero-stat"><span>Ingresos</span><b id="incomeAmt">$0</b></div>
-            <div class="ov-hero-divider"></div>
-            <div class="ov-hero-stat"><span>Gastos</span><b id="expenseAmt">$0</b></div>
-          </div>
-          <div id="savingsSection">
-            <div class="ov-savings-labels">
-              <span>Ahorro del mes</span>
+          <div id="savingsSection" hidden>
+            <div class="savings-row">
+              <span>Ahorro</span>
               <strong id="savingsPct">0%</strong>
             </div>
-            <div class="ov-savings-track">
-              <div class="ov-savings-fill" id="savingsFill"></div>
-            </div>
+            <div class="savings-track"><div class="savings-fill" id="savingsFill"></div></div>
           </div>
         </div>
-        <div class="ov-stats">
-          <div class="ov-stat today"><span>Hoy</span><strong id="todayAmt">$0</strong></div>
-          <div class="ov-stat avg"><span>Promedio diario</span><strong id="avgAmt">$0</strong></div>
+
+        <div class="stats-row">
+          <div class="stat-card today"><span>Hoy</span><strong id="todayAmt">$0</strong></div>
+          <div class="stat-card avg"><span>Promedio diario</span><strong id="avgAmt">$0</strong></div>
         </div>
-        <!-- Donut chart — en qué gasté -->
-        <div class="ov-donut-card" id="donutSection" hidden>
-          <div class="donut-header">
-            <span class="donut-title">¿En qué gasté?</span>
-            <span class="donut-month" id="donutMonth"></span>
+
+        <!-- Donut -->
+        <div class="surface-card" id="donutSection" hidden>
+          <div class="card-row-header">
+            <span class="card-label">¿En qué gasté?</span>
+            <span class="card-label-muted" id="donutMonth"></span>
           </div>
           <div class="donut-wrap">
             <div class="donut-svg-wrap">
-              <svg id="donutSvg" viewBox="0 0 120 120" class="donut-svg">
-                <circle class="donut-track" cx="60" cy="60" r="45" />
+              <svg id="donutSvg" viewBox="0 0 120 120">
+                <circle class="donut-track" cx="60" cy="60" r="45"/>
               </svg>
               <div class="donut-center">
                 <b id="donutMainPct">—</b>
@@ -135,100 +121,132 @@
           </div>
         </div>
 
-        <div class="ov-loans" id="loansOverview" hidden>
-          <span class="ov-loans-emoji">💸</span>
-          <div class="ov-loans-text">
-            <span id="loansCountLabel">0 préstamos</span>
-            <strong id="loansTotalAmt">$0 pendientes</strong>
+        <!-- Loans banner -->
+        <button class="loans-banner" id="loansOverview" type="button" hidden>
+          <span class="loans-banner-icon">💸</span>
+          <div class="loans-banner-text">
+            <span id="loansCountLabel"></span>
+            <strong id="loansTotalAmt"></strong>
           </div>
-          <span class="ov-loans-chevron">›</span>
+          <span class="loans-banner-chevron">›</span>
+        </button>
+
+        <!-- Budget -->
+        <div class="surface-card" id="budgetPanel" hidden>
+          <span class="card-label">Presupuesto</span>
+          <div id="budgetBars" style="margin-top:10px"></div>
         </div>
+
       </section>
 
-      <!-- Presupuesto -->
-      <section class="panel" id="budgetPanel">
-        <h2 class="panel-title">Presupuesto</h2>
-        <div id="budgetBars"></div>
-      </section>
-
-      <!-- Agregar movimiento -->
-      <section class="panel">
-        <div class="tabs">
-          <button class="tab active" data-tab="expense">+ Gasto</button>
-          <button class="tab" data-tab="income">+ Ingreso</button>
-          <button class="tab" data-tab="quick">Fijos</button>
-        </div>
-        <div id="tab-expense" class="tab-pane active">
-          <form id="expenseForm" class="add-form">
-            <div class="amount-field">
-              <input id="expAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" required autocomplete="off">
-            </div>
-            <div class="chips" id="expChips"></div>
-            <input id="expNote" type="text" placeholder="Nota (opcional)" autocomplete="off">
-            <input id="expDate" type="date" required>
-            <button class="btn-submit" type="submit">Guardar gasto</button>
-          </form>
-        </div>
-        <div id="tab-income" class="tab-pane">
-          <form id="incomeForm" class="add-form">
-            <div class="amount-field">
-              <input id="incAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" required autocomplete="off">
-            </div>
-            <div class="chips" id="incChips"></div>
-            <input id="incNote" type="text" placeholder="Nota (opcional)" autocomplete="off">
-            <input id="incDate" type="date" required>
-            <button class="btn-submit income" type="submit">Guardar ingreso</button>
-          </form>
-        </div>
-        <div id="tab-quick" class="tab-pane">
-          <p class="hint">Toca para registrar en este mes.</p>
-          <div id="quickItems"></div>
-          <button id="manageFixedBtn" class="btn-link" type="button">&#9881; Configurar gastos fijos</button>
-        </div>
-      </section>
-
-      <!-- Deudas -->
-      <section class="panel" id="loansPanel">
-        <div class="list-header">
-          <h2 class="panel-title">💸 Deudas pendientes</h2>
-          <button id="addLoanToggle" class="btn-add-small" type="button">+ Anotar</button>
-        </div>
-        <p class="loans-hint">Anotá a quién le prestaste. Cuando te paguen, tocá <strong>Recibí pago</strong> para descontar.</p>
-        <div id="newLoanForm" class="add-form" hidden>
-          <div class="amount-field">
-            <input id="loanAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
-          </div>
-          <input id="loanPerson" type="text" placeholder="¿Quién te debe? (nombre)" autocomplete="off">
-          <input id="loanNote"   type="text" placeholder="Nota (opcional)" autocomplete="off">
-          <input id="loanDate"   type="date">
-          <button id="saveLoanBtn" class="btn-submit" type="button">Guardar deuda</button>
-        </div>
-        <div id="loanList"></div>
-        <p id="loansEmpty" class="empty">Sin deudas pendientes.</p>
-      </section>
-
-      <!-- Movimientos -->
-      <section class="panel">
-        <div class="list-header">
-          <h2 class="panel-title">Movimientos</h2>
+      <!-- GASTOS / HISTORIAL -->
+      <section id="view-historial" class="view">
+        <div class="view-topbar">
+          <span class="card-label">Movimientos</span>
           <select id="catFilter"><option value="all">Todos</option></select>
         </div>
         <div id="txList"></div>
-        <p id="emptyMsg" class="empty">Sin movimientos este mes.</p>
+        <div id="emptyMsg" class="empty-state" hidden>
+          <span>📭</span><p>Sin movimientos este mes</p>
+        </div>
       </section>
 
-    </main>
+      <!-- DEUDAS -->
+      <section id="view-deudas" class="view">
+        <div class="view-topbar">
+          <span class="card-label">Deudas pendientes</span>
+          <button id="addLoanToggle" class="btn-sm-pink" type="button">+ Anotar</button>
+        </div>
+        <p class="info-note">Tocá <strong>💵 Recibí pago</strong> para descontar cuando te paguen.</p>
+        <div id="newLoanForm" class="inline-form" hidden>
+          <div class="big-num-field">
+            <input id="loanAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
+          </div>
+          <input id="loanPerson" type="text" placeholder="¿Quién te debe?" class="field" autocomplete="off">
+          <input id="loanNote"   type="text" placeholder="Nota (opcional)"  class="field" autocomplete="off">
+          <input id="loanDate"   type="date" class="field">
+          <button id="saveLoanBtn" class="btn-pink" type="button">Guardar deuda</button>
+        </div>
+        <div id="loanList"></div>
+        <div id="loansEmpty" class="empty-state" hidden>
+          <span>🤝</span><p>Sin deudas pendientes</p>
+        </div>
+      </section>
 
-    <!-- Settings modal -->
+      <!-- FIJOS -->
+      <section id="view-fijos" class="view">
+        <div class="view-topbar">
+          <span class="card-label">Gastos fijos</span>
+          <button id="manageFixedBtn" class="btn-sm-ghost" type="button">⚙ Gestionar</button>
+        </div>
+        <p class="info-note">Tocá para registrar en el mes actual.</p>
+        <div id="quickItems"></div>
+      </section>
+
+    </div><!-- /views-wrap -->
+
+    <!-- FAB -->
+    <button id="fabBtn" class="fab" type="button" aria-label="Agregar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+    </button>
+
+    <!-- Bottom nav -->
+    <nav class="bottom-nav">
+      <button class="bnav-btn active" data-view="inicio" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1v-9.5z"/><path d="M9 21v-8h6v8"/></svg>
+        <span>Inicio</span>
+      </button>
+      <button class="bnav-btn" data-view="historial" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 10h18M8 2v4M16 2v4M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+        <span>Gastos</span>
+      </button>
+      <div class="bnav-gap"></div>
+      <button class="bnav-btn" data-view="deudas" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2.5 2.5"/></svg>
+        <span>Deudas</span>
+      </button>
+      <button class="bnav-btn" data-view="fijos" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        <span>Fijos</span>
+      </button>
+    </nav>
+
+    <!-- ── Add bottom sheet ── -->
+    <div id="addModal" class="sheet-overlay" hidden>
+      <div class="sheet-backdrop" id="sheetBackdrop"></div>
+      <div class="sheet-body">
+        <div class="sheet-handle"></div>
+        <div class="add-type-row">
+          <button id="addTypeExpense" class="type-btn exp active" type="button">− Gasto</button>
+          <button id="addTypeIncome"  class="type-btn inc"        type="button">+ Ingreso</button>
+        </div>
+        <div class="add-num-row">
+          <span class="add-curr" id="addCurrSymbol">Bs</span>
+          <input id="addAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
+        </div>
+        <div class="chips" id="addChips"></div>
+        <input id="addNote" type="text"  placeholder="Nota (opcional)" class="field" autocomplete="off">
+        <input id="addDate" type="date"  class="field">
+        <button id="addSaveBtn" class="btn-pink" type="button">Guardar gasto</button>
+      </div>
+    </div>
+
+    <!-- ── Settings modal ── -->
     <div id="settingsModal" class="modal" hidden>
       <div class="modal-box">
-        <div class="modal-header">
-          <h2>Configuración</h2>
-          <button id="closeSettings" class="icon-btn dark" type="button">&#10005;</button>
+        <div class="modal-hdr">
+          <div>
+            <h2>Configuración</h2>
+            <p class="modal-sub" id="settingsUserSub"></p>
+          </div>
+          <button id="closeSettings" class="close-btn" type="button">✕</button>
         </div>
         <div class="modal-body">
-          <h3 class="settings-section-title">Moneda</h3>
-          <select id="currencySelect" class="settings-select">
+
+          <h3 class="modal-sec">Moneda</h3>
+          <select id="currencySelect" class="field">
             <option value="BOB">Bs — Bolivia</option>
             <option value="ARS">$ — Argentina</option>
             <option value="USD">$ — Dólares</option>
@@ -237,71 +255,72 @@
             <option value="MXN">$ — México</option>
             <option value="COP">$ — Colombia</option>
             <option value="UYU">$ — Uruguay</option>
-            <option value="PYG">&#8370; — Paraguay</option>
+            <option value="PYG">₲ — Paraguay</option>
           </select>
-          <h3 class="settings-section-title">Presupuesto mensual por categoría</h3>
-          <p class="hint">Dejá en 0 si no querés límite.</p>
+
+          <h3 class="modal-sec">Presupuesto por categoría</h3>
+          <p class="modal-hint">Dejá en 0 si no querés límite.</p>
           <div id="budgetInputs"></div>
-          <h3 class="settings-section-title">Gastos fijos mensuales</h3>
-          <p class="hint">Aparecen en la pestaña Fijos para agregar con un toque.</p>
+
+          <h3 class="modal-sec">Gastos fijos mensuales</h3>
+          <p class="modal-hint">Aparecen en Fijos para registrar con un toque.</p>
           <div id="recurringList"></div>
-          <form id="recurringForm" class="add-form compact">
-            <input id="recName" type="text" placeholder="Nombre (ej: Alquiler)" required autocomplete="off">
+          <form id="recurringForm" class="inline-form">
+            <input id="recName"   type="text"   class="field" placeholder="Nombre (ej: Alquiler)" required autocomplete="off">
             <div class="two-col">
-              <input id="recAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="Monto" required>
-              <select id="recCategory"></select>
+              <input id="recAmount" type="number" class="field" inputmode="decimal" placeholder="Monto" required>
+              <select id="recCategory" class="field"></select>
             </div>
-            <button class="btn-submit" type="submit">Agregar fijo</button>
+            <button class="btn-pink" type="submit">Agregar fijo</button>
           </form>
-          <h3 class="settings-section-title">Face ID / Biometría</h3>
-          <p class="hint" id="biometricHint">Verificando disponibilidad…</p>
-          <button id="setupBiometricBtn" class="btn-biometric-setup" type="button" hidden>
-            <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;flex-shrink:0">
-              <path d="M7 3H5a2 2 0 00-2 2v2M17 3h2a2 2 0 012 2v2M7 21H5a2 2 0 01-2-2v-2M17 21h2a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-              <circle cx="9" cy="10.5" r="1.1" fill="currentColor"/><circle cx="15" cy="10.5" r="1.1" fill="currentColor"/>
-              <path d="M9 15.5c.8 1.4 5.2 1.4 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
+
+          <h3 class="modal-sec">Face ID / Biometría</h3>
+          <p class="modal-hint" id="biometricHint">Verificando…</p>
+          <button id="setupBiometricBtn" class="btn-outlined" type="button" hidden>
+            <svg viewBox="0 0 24 24" fill="none" style="width:18px;height:18px;flex-shrink:0"><path d="M7 3H5a2 2 0 00-2 2v2M17 3h2a2 2 0 012 2v2M7 21H5a2 2 0 01-2-2v-2M17 21h2a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="10.5" r="1.1" fill="currentColor"/><circle cx="15" cy="10.5" r="1.1" fill="currentColor"/><path d="M9 15.5c.8 1.4 5.2 1.4 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
             Configurar Face ID
           </button>
           <button id="removeBiometricBtn" class="btn-danger-sm" type="button" hidden>Quitar Face ID</button>
-          <h3 class="settings-section-title">Sincronización (Supabase)</h3>
-          <p class="hint">Pegá tu URL y clave para sincronizar entre dispositivos.</p>
-          <label class="settings-label">URL del proyecto</label>
-          <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co"
-                 class="settings-input" autocomplete="off" spellcheck="false">
-          <label class="settings-label">Anon Key</label>
-          <input id="supabaseKey" type="password" placeholder="eyJ..."
-                 class="settings-input" autocomplete="off">
-          <button id="saveSupabaseBtn" class="btn-biometric-setup" type="button">💾 Guardar y activar sync</button>
-          <p id="syncActiveBadge" class="sync-active-badge" hidden>☁ Sincronización activa</p>
-          <div class="sync-row">
-            <button id="syncUpBtn"   class="btn-sync-up"   type="button">⬆ Subir ahora</button>
-            <button id="syncDownBtn" class="btn-sync-down" type="button">⬇ Bajar ahora</button>
+
+          <h3 class="modal-sec">Sincronización (Supabase)</h3>
+          <p class="modal-hint">Pegá tu URL y clave para sincronizar entre dispositivos.</p>
+          <label class="field-label">URL del proyecto</label>
+          <input id="supabaseUrl" type="url"      class="field" placeholder="https://xxxx.supabase.co" autocomplete="off" spellcheck="false">
+          <label class="field-label">Anon Key</label>
+          <input id="supabaseKey" type="password" class="field" placeholder="eyJ…" autocomplete="off">
+          <button id="saveSupabaseBtn" class="btn-outlined" type="button">💾 Guardar y activar sync</button>
+          <p id="syncActiveBadge" class="badge-ok" hidden>☁ Sincronización activa</p>
+          <div class="two-col">
+            <button id="syncUpBtn"   class="btn-sync-up"   type="button">⬆ Subir</button>
+            <button id="syncDownBtn" class="btn-sync-down" type="button">⬇ Bajar</button>
           </div>
-          <p id="syncStatus" class="sync-status" hidden></p>
-          <button id="deleteAllBtn" class="btn-danger" type="button">Borrar mis datos</button>
+          <p id="syncStatus" class="sync-msg" hidden></p>
+
+          <div class="settings-actions">
+            <button id="logoutBtn"    class="btn-outlined-warn" type="button">Cerrar sesión</button>
+            <button id="deleteAllBtn" class="btn-danger"        type="button">Borrar mis datos</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Payment modal -->
+    <!-- ── Payment modal ── -->
     <div id="paymentModal" class="modal" hidden>
-      <div class="modal-box">
-        <div class="modal-header">
+      <div class="modal-box compact">
+        <div class="modal-hdr">
           <div>
             <h2 id="paymentModalTitle">Recibí pago</h2>
-            <p class="payment-sub">Deuda pendiente: <strong id="paymentPendingAmt"></strong></p>
+            <p class="modal-hint">Deuda pendiente: <strong id="paymentPendingAmt"></strong></p>
           </div>
-          <button id="closePaymentModal" class="icon-btn dark" type="button">&#10005;</button>
+          <button id="closePaymentModal" class="close-btn" type="button">✕</button>
         </div>
         <div class="modal-body">
-          <div class="amount-field">
-            <input id="paymentAmount" type="number" inputmode="decimal"
-                   min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
+          <div class="big-num-field">
+            <input id="paymentAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
           </div>
-          <input id="paymentDate" type="date" class="payment-date-input">
-          <button id="confirmPaymentBtn" class="btn-submit" type="button">Descontar de la deuda</button>
-          <button id="settleFullBtn"     class="btn-settle-full" type="button">Deuda saldada por completo ✓</button>
+          <input id="paymentDate" type="date" class="field">
+          <button id="confirmPaymentBtn" class="btn-pink"    type="button">Descontar de la deuda</button>
+          <button id="settleFullBtn"     class="btn-success" type="button">Deuda saldada total ✓</button>
         </div>
       </div>
     </div>
@@ -315,7 +334,7 @@
         </div>
         <div class="tx-end">
           <b class="tx-amt"></b>
-          <button class="tx-del" type="button">&#10005;</button>
+          <button class="tx-del" type="button">✕</button>
         </div>
       </div>
     </template>
