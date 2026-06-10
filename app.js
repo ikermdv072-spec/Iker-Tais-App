@@ -375,7 +375,7 @@ function renderAll() {
 
   renderBudgets(mExp);
   renderDonut(mExp);
-  renderTxList(mExp, mInc);
+  renderTxList();
   renderLoans();
   document.getElementById("addCurrSymbol").textContent = getCurrencySymbol();
 }
@@ -452,15 +452,35 @@ function renderDonut(mExp) {
     </li>`).join("");
 }
 
-function renderTxList(mExp, mInc) {
-  const filter = document.getElementById("catFilter").value;
-  const list   = document.getElementById("txList");
-  const empty  = document.getElementById("emptyMsg");
-  const tpl    = document.getElementById("txTpl");
+function renderTxList() {
+  const fromVal = document.getElementById("rangeFrom")?.value;
+  const toVal   = document.getElementById("rangeTo")?.value;
+  const filter  = document.getElementById("catFilter").value;
+  const list    = document.getElementById("txList");
+  const empty   = document.getElementById("emptyMsg");
+  const tpl     = document.getElementById("txTpl");
+
+  const srcExp = fromVal && toVal
+    ? expenses.filter(e => e.date >= fromVal && e.date <= toVal)
+    : expenses.filter(e => e.date.startsWith(currentMonth));
+  const srcInc = fromVal && toVal
+    ? income.filter(i => i.date >= fromVal && i.date <= toVal)
+    : income.filter(i => i.date.startsWith(currentMonth));
+
+  const totalInc = sum(srcInc), totalExp = sum(srcExp), bal = totalInc - totalExp;
+  const incEl = document.getElementById("rangeInc");
+  const expEl = document.getElementById("rangeExp");
+  const balEl = document.getElementById("rangeBal");
+  if (incEl) incEl.textContent = fmt(totalInc);
+  if (expEl) expEl.textContent = fmt(totalExp);
+  if (balEl) {
+    balEl.textContent = fmt(bal);
+    balEl.style.color = bal >= 0 ? "var(--income)" : "var(--expense)";
+  }
 
   const all = [
-    ...mExp.map(e => ({ ...e, type: "expense" })),
-    ...mInc.map(i => ({ ...i, type: "income" })),
+    ...srcExp.map(e => ({ ...e, type: "expense" })),
+    ...srcInc.map(i => ({ ...i, type: "income" })),
   ].filter(tx => {
     if (filter === "all")     return true;
     if (filter === "_income") return tx.type === "income";
@@ -778,6 +798,13 @@ function startApp(username) {
   document.getElementById("addDate").value            = todayIso();
 
   buildCatFilter();
+
+  // Initialize date range inputs to current month
+  const rangeFromEl = document.getElementById("rangeFrom");
+  const rangeToEl   = document.getElementById("rangeTo");
+  if (rangeFromEl && !rangeFromEl.value) rangeFromEl.value = currentMonth + "-01";
+  if (rangeToEl   && !rangeToEl.value)   rangeToEl.value   = todayIso();
+
   if (!startApp._listenersAttached) { attachAppListeners(); startApp._listenersAttached = true; }
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   syncOnStart();
@@ -843,6 +870,10 @@ function attachAppListeners() {
   // Category filter
   document.getElementById("catFilter").addEventListener("change", renderAll);
   document.getElementById("exportBtn").addEventListener("click",  exportCsv);
+
+  // Date range filter
+  document.getElementById("rangeFrom").addEventListener("change", renderAll);
+  document.getElementById("rangeTo").addEventListener("change",   renderAll);
 
   // Settings
   document.getElementById("settingsBtn").addEventListener("click",    openSettings);

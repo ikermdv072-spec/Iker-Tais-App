@@ -597,6 +597,8 @@ input:focus, select:focus {
   background:
     linear-gradient(135deg, #5b21b6 0%, #9d174d 100%),
     radial-gradient(circle at top right, rgba(255,255,255,0.14), transparent 14rem);
+  border: 1px solid rgba(217,70,239,0.35);
+  box-shadow: 0 14px 36px rgba(139,92,246,0.45), 0 0 0 1px rgba(217,70,239,0.12);
 }
 [data-theme="tais"] .login-bg::after {
   background:
@@ -895,6 +897,16 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Scrolling ── */
 .view { overscroll-behavior-y: contain; }
+
+/* ── Rango de fechas (historial) ── */
+.range-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 0 0; }
+.range-row .field { min-height: 40px; padding: 8px 10px; font-size: 0.9rem; }
+.range-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0 4px; }
+.range-stat { display: grid; gap: 3px; padding: 10px 12px; border-radius: 14px; background: var(--surface-soft); }
+.range-stat span { color: var(--muted); font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+.range-stat b { font-weight: 850; font-size: 0.92rem; overflow-wrap: anywhere; }
+.range-stat.inc b { color: var(--income); }
+.range-stat.exp b { color: var(--expense); }
 
 /* ════════════════════════════════════════════════════════════
    LANDSCAPE PHONE

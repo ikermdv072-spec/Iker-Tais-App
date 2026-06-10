@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f766e">
   <title>Kiki's</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 
@@ -154,9 +154,18 @@
           <span class="card-label">Movimientos</span>
           <select id="catFilter"><option value="all">Todos</option></select>
         </div>
+        <div class="range-row">
+          <input type="date" id="rangeFrom" class="field">
+          <input type="date" id="rangeTo"   class="field">
+        </div>
+        <div class="range-summary" id="rangeSummary">
+          <div class="range-stat inc"><span>Ingresos</span><b id="rangeInc">—</b></div>
+          <div class="range-stat exp"><span>Gastos</span><b id="rangeExp">—</b></div>
+          <div class="range-stat"><span>Balance</span><b id="rangeBal">—</b></div>
+        </div>
         <div id="txList"></div>
         <div id="emptyMsg" class="empty-state" hidden>
-          <span>📭</span><p>Sin movimientos este mes</p>
+          <span>📭</span><p>Sin movimientos en este período</p>
         </div>
       </section>
 
@@ -366,6 +375,6 @@
   </div><!-- /appRoot -->
 
   <script src="config.js?v=7"></script>
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
