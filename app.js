@@ -10,31 +10,54 @@ function loadUsers() {
   try { return JSON.parse(localStorage.getItem(AUTH_USERS_KEY)) || {}; }
   catch { return {}; }
 }
-function hashPass(s) {
+function hashPassLegacy(s) {
   let h = 5381;
   for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
   return h.toString(36);
 }
-function tryLogin(username, password) {
-  const u = loadUsers()[username.toLowerCase()];
-  return u && u.pass === hashPass(password);
+async function hashPass(password, salt) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: "SHA-256", salt: enc.encode(salt), iterations: 200000 },
+    key, 256
+  );
+  return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
-function createAccount(username, password) {
+async function tryLogin(username, password) {
+  const u = loadUsers()[username.toLowerCase()];
+  if (!u) return false;
+  if (u.salt) return u.pass === await hashPass(password, u.salt);
+  // Migrar hash legado djb2 → PBKDF2 en el primer login exitoso
+  if (u.pass !== hashPassLegacy(password)) return false;
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("");
+  const users = loadUsers();
+  users[username.toLowerCase()].pass = await hashPass(password, salt);
+  users[username.toLowerCase()].salt = salt;
+  localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
+  return true;
+}
+async function createAccount(username, password) {
   const users = loadUsers(), key = username.toLowerCase();
   if (users[key]) return "Ya existe.";
-  users[key] = { displayName: username, pass: hashPass(password) };
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("");
+  const pass = await hashPass(password, salt);
+  users[key] = { displayName: username, pass, salt };
   localStorage.setItem(AUTH_USERS_KEY, JSON.stringify(users));
   return null;
 }
 function getSession() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
-    if (!s || s.date !== todayIso() || !loadUsers()[s.user]) return null;
+    if (!s || !loadUsers()[s.user]) return null;
+    const expiry = new Date(s.created || s.date);
+    expiry.setDate(expiry.getDate() + 30);
+    if (new Date() > expiry) return null;
     return s.user;
   } catch { return null; }
 }
 function saveSession(user) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify({ user: user.toLowerCase(), date: todayIso() }));
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ user: user.toLowerCase(), created: new Date().toISOString() }));
   localStorage.setItem(LAST_USER_KEY, user.toLowerCase());
 }
 function clearSession() { localStorage.removeItem(SESSION_KEY); }
@@ -141,7 +164,11 @@ function renderLastSync() {
 }
 function supaTableSql(table) {
   const tableName = cleanTableName(table) || "sync_data";
-  return `create table if not exists public.${tableName} (
+  return `-- AVISO DE SEGURIDAD: La anon key de Supabase es pública. Cualquiera
+-- que la tenga puede leer y escribir esta tabla. Para uso privado,
+-- usa un proyecto de Supabase exclusivo o migrá a Supabase Auth.
+
+create table if not exists public.${tableName} (
   user_key text primary key,
   data jsonb not null,
   synced_at timestamptz not null default now()
@@ -226,6 +253,20 @@ function startCloudPolling() {
   clearInterval(_cloudPullTimer);
   if (!supaConfigured()) return;
   _cloudPullTimer = setInterval(pullCloudChanges, 15000);
+}
+function getSetupUrl() {
+  const { url, key, table } = getSupaCreds();
+  if (!url || !key) return null;
+  const encoded = btoa(JSON.stringify({ url, key, table: table || "sync_data" }));
+  return `${location.origin}${location.pathname}?setup=${encoded}`;
+}
+function applySetupFromUrl() {
+  const setup = new URLSearchParams(location.search).get("setup");
+  if (!setup) return;
+  try {
+    const { url, key, table } = JSON.parse(atob(setup));
+    if (url && key) { saveSupaCreds(url, key, table || "sync_data"); history.replaceState(null, "", location.pathname); }
+  } catch { /* param inválido */ }
 }
 
 // ════════════════════════════════════════════════════════════
@@ -317,7 +358,7 @@ function renderAll() {
 
   const balEl = document.getElementById("balanceAmt");
   balEl.textContent = fmt(balance);
-  balEl.style.color = balance >= 0 ? "#fda4af" : "#fca5a5";
+  balEl.style.color = balance >= 0 ? "#86efac" : "#fca5a5";
   document.getElementById("incomeAmt").textContent  = fmt(totalInc);
   document.getElementById("expenseAmt").textContent = fmt(totalExp);
   document.getElementById("todayAmt").textContent   = fmt(sum(expenses.filter(e => e.date === todayIso())));
@@ -636,6 +677,7 @@ function openSettings() {
   document.getElementById("supabaseKey").value = key || "";
   document.getElementById("supabaseTable").value = table || "sync_data";
   document.getElementById("syncActiveBadge").hidden = !supaConfigured();
+  document.getElementById("shareSetupBtn").hidden   = !supaConfigured();
   document.getElementById("globalConfigBadge").hidden = !getBundledSupaCreds();
   document.getElementById("syncStatus").hidden = true;
   renderSupabaseSql();
@@ -706,7 +748,7 @@ function exportCsv() {
     ...expenses.map(e => ({ ...e, tipo: "gasto" })),
     ...income.map(i => ({ ...i, tipo: "ingreso" })),
   ].sort((a, b) => a.date.localeCompare(b.date));
-  const rows = all.map(tx => ["gasto", tx.date, tx.category, `"${String(tx.note||"").replaceAll('"','""')}"`, tx.amount]);
+  const rows = all.map(tx => [tx.tipo, tx.date, tx.category, `"${String(tx.note||"").replaceAll('"','""')}"`, tx.amount]);
   const csv  = [["tipo","fecha","categoria","nota","monto"], ...rows].map(r => r.join(",")).join("\n");
   const url  = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   Object.assign(document.createElement("a"), { href: url, download: `gastos-${currentUser}-${todayIso()}.csv` }).click();
@@ -927,6 +969,21 @@ function attachAppListeners() {
     }
   });
   document.getElementById("supabaseTable").addEventListener("input", renderSupabaseSql);
+  document.getElementById("shareSetupBtn").addEventListener("click", async () => {
+    const url = getSetupUrl();
+    if (!url) return;
+    if (navigator.share) {
+      try { await navigator.share({ title: "Gastos Claros — activar sincronización", url }); }
+      catch { /* usuario canceló */ }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      showSyncStatus("Link copiado. Abrílo en el otro dispositivo para activar la sincronización automáticamente.", "ok");
+    } catch {
+      showSyncStatus("No se pudo copiar. Copiá la URL manualmente desde la barra del navegador.", "err");
+    }
+  });
   document.getElementById("copySupabaseSqlBtn").addEventListener("click", async () => {
     const sql = document.getElementById("supabaseSql").value;
     try {
@@ -972,13 +1029,35 @@ function showPasswordMode() {
   document.getElementById("passwordMode").hidden  = false;
 }
 
-document.getElementById("loginForm").addEventListener("submit", e => {
+document.getElementById("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   const user = document.getElementById("loginUser").value.trim();
   const pass = document.getElementById("loginPass").value;
-  if (!tryLogin(user, pass)) { document.getElementById("loginError").hidden = false; return; }
+  if (!await tryLogin(user, pass)) { document.getElementById("loginError").hidden = false; return; }
   document.getElementById("loginError").hidden = true;
   saveSession(user); startApp(user);
+});
+
+document.getElementById("registerForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const user  = document.getElementById("regUser").value.trim();
+  const pass  = document.getElementById("regPass").value;
+  const pass2 = document.getElementById("regPass2").value;
+  const errEl = document.getElementById("registerError");
+  if (pass !== pass2) { errEl.textContent = "Las contraseñas no coinciden."; errEl.hidden = false; return; }
+  if (pass.length < 4) { errEl.textContent = "Mínimo 4 caracteres."; errEl.hidden = false; return; }
+  const err = await createAccount(user, pass);
+  if (err) { errEl.textContent = err; errEl.hidden = false; return; }
+  errEl.hidden = true;
+  saveSession(user); startApp(user);
+});
+document.getElementById("showRegisterBtn").addEventListener("click", () => {
+  document.getElementById("loginForm").hidden = true;
+  document.getElementById("registerForm").hidden = false;
+});
+document.getElementById("showLoginBtn").addEventListener("click", () => {
+  document.getElementById("registerForm").hidden = true;
+  document.getElementById("loginForm").hidden = false;
 });
 
 document.getElementById("biometricBtn").addEventListener("click", async () => {
@@ -1009,12 +1088,7 @@ document.getElementById("switchUserBtn").addEventListener("click", () => {
 // ENTRY POINT
 // ════════════════════════════════════════════════════════════
 
-(function seedAccounts() {
-  const users = loadUsers();
-  if (!users["taisiña"])  createAccount("Taisiña",  "Taisonlybirdies1");
-  if (!users["ikersiño"]) createAccount("Ikersiño", "8790");
-})();
-
+applySetupFromUrl();
 const activeSession = getSession();
 if (activeSession) {
   startApp(activeSession);

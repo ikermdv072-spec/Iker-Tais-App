@@ -45,6 +45,15 @@
           <input id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password" required>
           <button class="btn-auth" type="submit">Entrar</button>
           <p id="loginError" class="auth-error" hidden>Usuario o contraseña incorrectos.</p>
+          <button id="showRegisterBtn" class="btn-text-xs" type="button" style="margin-top:10px">Crear cuenta nueva</button>
+        </form>
+        <form id="registerForm" class="auth-form" hidden>
+          <input id="regUser"  type="text"     placeholder="Elegí un usuario"     autocomplete="username"     spellcheck="false" required>
+          <input id="regPass"  type="password" placeholder="Contraseña"           autocomplete="new-password" required>
+          <input id="regPass2" type="password" placeholder="Repetí la contraseña" autocomplete="new-password" required>
+          <button class="btn-auth" type="submit">Crear cuenta</button>
+          <p id="registerError" class="auth-error" hidden></p>
+          <button id="showLoginBtn" class="btn-text-xs" type="button" style="margin-top:10px">Ya tengo cuenta</button>
         </form>
       </div>
     </div>
@@ -294,6 +303,7 @@
             <input id="supabaseTable" type="text" class="field" value="sync_data" placeholder="sync_data" autocomplete="off" spellcheck="false">
             <button id="saveSupabaseBtn" class="btn-outlined" type="button">Guardar conexión</button>
             <p id="syncActiveBadge" class="badge-ok" hidden>Sincronización activa</p>
+            <button id="shareSetupBtn" class="btn-outlined" type="button" hidden>Compartir a otro dispositivo</button>
 
             <div class="two-col">
               <button id="syncUpBtn" class="btn-sync-up" type="button">Subir mis datos</button>
