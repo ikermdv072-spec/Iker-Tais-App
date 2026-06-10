@@ -508,6 +508,31 @@ input:focus, select:focus {
 .sync-msg.err { background: #fee2e2; color: var(--danger); }
 .btn-sync-up { background: var(--primary); }
 .btn-sync-down { background: #2563eb; }
+.sync-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.sync-title {
+  margin: 0;
+  font-size: 0.96rem;
+}
+.sql-box {
+  width: 100%;
+  min-height: 190px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #0f1f1c;
+  color: #d9fff7;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  padding: 12px;
+}
 
 @media (min-width: 760px) {
   .view { padding-top: 18px; }

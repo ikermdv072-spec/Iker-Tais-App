@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f766e">
   <title>Gastos Claros</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 </head>
 <body>
 
@@ -283,18 +283,30 @@
           <button id="removeBiometricBtn" class="btn-danger-sm" type="button" hidden>Quitar Face ID</button>
 
           <h3 class="modal-sec">Sincronización (Supabase)</h3>
-          <p class="modal-hint">Pegá tu URL y clave para sincronizar entre dispositivos.</p>
-          <label class="field-label">URL del proyecto</label>
-          <input id="supabaseUrl" type="url"      class="field" placeholder="https://xxxx.supabase.co" autocomplete="off" spellcheck="false">
-          <label class="field-label">Anon Key</label>
-          <input id="supabaseKey" type="password" class="field" placeholder="eyJ…" autocomplete="off">
-          <button id="saveSupabaseBtn" class="btn-outlined" type="button">💾 Guardar y activar sync</button>
-          <p id="syncActiveBadge" class="badge-ok" hidden>☁ Sincronización activa</p>
-          <div class="two-col">
-            <button id="syncUpBtn"   class="btn-sync-up"   type="button">⬆ Subir</button>
-            <button id="syncDownBtn" class="btn-sync-down" type="button">⬇ Bajar</button>
+          <div class="sync-panel">
+            <p class="modal-hint">Pega estos datos de Supabase para usar tus gastos en varios dispositivos.</p>
+            <label class="field-label">Project URL</label>
+            <input id="supabaseUrl" type="url" class="field" placeholder="https://xxxx.supabase.co" autocomplete="off" spellcheck="false">
+            <label class="field-label">Anon public key</label>
+            <input id="supabaseKey" type="password" class="field" placeholder="eyJ..." autocomplete="off">
+            <label class="field-label">Tabla</label>
+            <input id="supabaseTable" type="text" class="field" value="sync_data" placeholder="sync_data" autocomplete="off" spellcheck="false">
+            <button id="saveSupabaseBtn" class="btn-outlined" type="button">Guardar conexión</button>
+            <p id="syncActiveBadge" class="badge-ok" hidden>Sincronización activa</p>
+
+            <div class="two-col">
+              <button id="syncUpBtn" class="btn-sync-up" type="button">Subir mis datos</button>
+              <button id="syncDownBtn" class="btn-sync-down" type="button">Bajar datos</button>
+            </div>
+            <p id="syncStatus" class="sync-msg" hidden></p>
           </div>
-          <p id="syncStatus" class="sync-msg" hidden></p>
+
+          <div class="sync-panel">
+            <h4 class="sync-title">SQL para crear la tabla</h4>
+            <p class="modal-hint">En Supabase: SQL Editor → New query → pega esto → Run.</p>
+            <textarea id="supabaseSql" class="sql-box" readonly spellcheck="false"></textarea>
+            <button id="copySupabaseSqlBtn" class="btn-outlined" type="button">Copiar SQL</button>
+          </div>
 
           <div class="settings-actions">
             <button id="logoutBtn"    class="btn-outlined-warn" type="button">Cerrar sesión</button>
@@ -341,6 +353,6 @@
 
   </div><!-- /appRoot -->
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

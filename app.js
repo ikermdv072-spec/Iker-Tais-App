@@ -88,27 +88,62 @@ async function verifyPasskey(username) {
 const SUPA_CREDS_KEY = "mb:supabase:creds";
 
 function getSupaCreds() {
-  try { return JSON.parse(localStorage.getItem(SUPA_CREDS_KEY)) || {}; }
+  try {
+    const creds = JSON.parse(localStorage.getItem(SUPA_CREDS_KEY)) || {};
+    return { ...creds, table: creds.table || "sync_data" };
+  }
   catch { return {}; }
 }
-function saveSupaCreds(url, key) {
+function cleanTableName(table) {
+  const value = (table || "sync_data").trim();
+  return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value) ? value : "";
+}
+function saveSupaCreds(url, key, table) {
+  const tableName = cleanTableName(table);
+  if (!tableName) throw new Error("El nombre de tabla solo puede usar letras, números y guion bajo.");
   localStorage.setItem(SUPA_CREDS_KEY, JSON.stringify({
-    url: url.trim().replace(/\/$/, ""), key: key.trim(),
+    url: url.trim().replace(/\/$/, ""),
+    key: key.trim(),
+    table: tableName,
   }));
 }
-function supaConfigured() { const { url, key } = getSupaCreds(); return !!(url && key); }
+function supaConfigured() { const { url, key, table } = getSupaCreds(); return !!(url && key && table); }
 function supaHeaders() {
   const { key } = getSupaCreds();
   return { "Content-Type": "application/json", "apikey": key, "Authorization": `Bearer ${key}` };
 }
+function supaTableSql(table) {
+  const tableName = cleanTableName(table) || "sync_data";
+  return `create table if not exists public.${tableName} (
+  user_key text primary key,
+  data jsonb not null,
+  synced_at timestamptz not null default now()
+);
+
+alter table public.${tableName} enable row level security;
+
+drop policy if exists "allow anon sync" on public.${tableName};
+create policy "allow anon sync"
+on public.${tableName}
+for all
+to anon
+using (true)
+with check (true);`;
+}
+function renderSupabaseSql() {
+  const sqlEl = document.getElementById("supabaseSql");
+  const tableEl = document.getElementById("supabaseTable");
+  if (!sqlEl || !tableEl) return;
+  sqlEl.value = supaTableSql(tableEl.value);
+}
 
 async function syncUpload() {
   if (!supaConfigured()) return;
-  const { url } = getSupaCreds();
+  const { url, table } = getSupaCreds();
   const rows = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans]
     .map(k => ({ user_key: k, data: load(k, null), synced_at: new Date().toISOString() }))
     .filter(r => r.data !== null);
-  const res = await fetch(`${url}/rest/v1/sync_data`, {
+  const res = await fetch(`${url}/rest/v1/${table}`, {
     method: "POST",
     headers: { ...supaHeaders(), "Prefer": "resolution=merge-duplicates" },
     body: JSON.stringify(rows),
@@ -118,9 +153,9 @@ async function syncUpload() {
 
 async function syncDownload() {
   if (!supaConfigured()) throw new Error("Configurá la URL y clave primero.");
-  const { url } = getSupaCreds();
+  const { url, table } = getSupaCreds();
   const keys = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
-  const res  = await fetch(`${url}/rest/v1/sync_data?user_key=in.(${keys.map(k=>`"${k}"`).join(",")})`, {
+  const res  = await fetch(`${url}/rest/v1/${table}?user_key=in.(${keys.map(k=>`"${k}"`).join(",")})`, {
     headers: supaHeaders(),
   });
   if (!res.ok) throw new Error(`Error ${res.status}`);
@@ -551,11 +586,13 @@ function buildCatFilter() {
 function openSettings() {
   document.getElementById("settingsUserSub").textContent = `@${currentUser}`;
   document.getElementById("currencySelect").value = settings.currency || "BOB";
-  const { url, key } = getSupaCreds();
+  const { url, key, table } = getSupaCreds();
   document.getElementById("supabaseUrl").value = url || "";
   document.getElementById("supabaseKey").value = key || "";
+  document.getElementById("supabaseTable").value = table || "sync_data";
   document.getElementById("syncActiveBadge").hidden = !supaConfigured();
   document.getElementById("syncStatus").hidden = true;
+  renderSupabaseSql();
   buildBudgetInputs();
   buildRecurringList();
   const recCat = document.getElementById("recCategory");
@@ -824,10 +861,27 @@ function attachAppListeners() {
   document.getElementById("saveSupabaseBtn").addEventListener("click", () => {
     const url = document.getElementById("supabaseUrl").value;
     const key = document.getElementById("supabaseKey").value;
-    if (!url || !key) { showSyncStatus("Completá los dos campos.", "err"); return; }
-    saveSupaCreds(url, key);
-    document.getElementById("syncActiveBadge").hidden = false;
-    showSyncStatus("Guardado. Sincronización activada ✓", "ok");
+    const table = document.getElementById("supabaseTable").value;
+    if (!url || !key || !table) { showSyncStatus("Completá URL, anon key y tabla.", "err"); return; }
+    try {
+      saveSupaCreds(url, key, table);
+      renderSupabaseSql();
+      document.getElementById("syncActiveBadge").hidden = false;
+      showSyncStatus("Conexión guardada. Ahora puedes subir o bajar datos.", "ok");
+    } catch (err) {
+      showSyncStatus(err.message, "err");
+    }
+  });
+  document.getElementById("supabaseTable").addEventListener("input", renderSupabaseSql);
+  document.getElementById("copySupabaseSqlBtn").addEventListener("click", async () => {
+    const sql = document.getElementById("supabaseSql").value;
+    try {
+      await navigator.clipboard.writeText(sql);
+      showSyncStatus("SQL copiado.", "ok");
+    } catch {
+      document.getElementById("supabaseSql").select();
+      showSyncStatus("No pude copiarlo automáticamente. Ya lo dejé seleccionado.", "ok");
+    }
   });
 
   document.getElementById("syncUpBtn").addEventListener("click", async () => {
