@@ -115,6 +115,26 @@
           <div class="ov-stat today"><span>Hoy</span><strong id="todayAmt">$0</strong></div>
           <div class="ov-stat avg"><span>Promedio diario</span><strong id="avgAmt">$0</strong></div>
         </div>
+        <!-- Donut chart — en qué gasté -->
+        <div class="ov-donut-card" id="donutSection" hidden>
+          <div class="donut-header">
+            <span class="donut-title">¿En qué gasté?</span>
+            <span class="donut-month" id="donutMonth"></span>
+          </div>
+          <div class="donut-wrap">
+            <div class="donut-svg-wrap">
+              <svg id="donutSvg" viewBox="0 0 120 120" class="donut-svg">
+                <circle class="donut-track" cx="60" cy="60" r="45" />
+              </svg>
+              <div class="donut-center">
+                <b id="donutMainPct">—</b>
+                <span id="donutMainCat"></span>
+              </div>
+            </div>
+            <ul class="donut-legend" id="donutLegend"></ul>
+          </div>
+        </div>
+
         <div class="ov-loans" id="loansOverview" hidden>
           <span class="ov-loans-emoji">💸</span>
           <div class="ov-loans-text">

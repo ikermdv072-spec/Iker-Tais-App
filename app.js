@@ -345,6 +345,7 @@ function renderAll() {
   }
 
   renderBudgets(mExp);
+  renderDonut(mExp);
   renderTxList(mExp, mInc);
   renderLoans();
 }
@@ -660,6 +661,67 @@ function buildRecurringList() {
 }
 
 // ═══ Export ═══════════════════════════════════════════════════
+// ── Donut chart ──────────────────────────────────────────────
+const DONUT_COLORS = ["#be185d","#7c3aed","#ea580c","#d97706","#059669","#0891b2","#c026d3"];
+
+function renderDonut(mExp) {
+  const section = document.getElementById("donutSection");
+  const total   = sum(mExp);
+  if (total === 0) { section.hidden = true; return; }
+  section.hidden = false;
+
+  document.getElementById("donutMonth").textContent = monthLabel(currentMonth);
+
+  // Group by category
+  const byCat = {};
+  mExp.forEach(e => { byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount); });
+
+  const segs = Object.entries(byCat)
+    .map(([cat, amt]) => ({ cat, amt, pct: (amt / total) * 100 }))
+    .sort((a, b) => b.amt - a.amt)
+    .slice(0, 7);
+
+  // SVG donut segments
+  const svg  = document.getElementById("donutSvg");
+  svg.querySelectorAll(".donut-seg").forEach(el => el.remove());
+
+  const r    = 45;
+  const circ = 2 * Math.PI * r;
+  let accum  = 0;
+
+  segs.forEach((seg, i) => {
+    const dash = (seg.pct / 100) * circ;
+    const el   = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    el.setAttribute("class", "donut-seg");
+    el.setAttribute("cx", "60");
+    el.setAttribute("cy", "60");
+    el.setAttribute("r", String(r));
+    el.setAttribute("fill", "none");
+    el.setAttribute("stroke", DONUT_COLORS[i % DONUT_COLORS.length]);
+    el.setAttribute("stroke-width", "14");
+    el.setAttribute("stroke-linecap", "round");
+    el.setAttribute("stroke-dasharray", `${dash - 2} ${circ - dash + 2}`);
+    el.setAttribute("stroke-dashoffset", String(-accum));
+    el.setAttribute("transform", "rotate(-90 60 60)");
+    svg.appendChild(el);
+    accum += dash;
+  });
+
+  // Center — biggest category
+  const top = segs[0];
+  document.getElementById("donutMainPct").textContent = Math.round(top.pct) + "%";
+  document.getElementById("donutMainCat").textContent = top.cat;
+
+  // Legend
+  document.getElementById("donutLegend").innerHTML = segs.map((s, i) => `
+    <li class="donut-leg-item">
+      <span class="donut-leg-dot" style="background:${DONUT_COLORS[i % DONUT_COLORS.length]}"></span>
+      <span class="donut-leg-name">${esc(s.cat)}</span>
+      <span class="donut-leg-pct">${Math.round(s.pct)}%</span>
+    </li>
+  `).join("");
+}
+
 function showSyncStatus(msg, type) {
   const el = document.getElementById("syncStatus");
   el.textContent = msg;
@@ -695,6 +757,10 @@ function startApp(username) {
   recurring = load(KEY.recurring, []);
   settings  = load(KEY.settings,  { currency: "BOB", locale: "es-BO" });
   loans     = load(KEY.loans,     []);
+
+  // Apply per-user theme
+  const themeMap = { "taisiña": "tais", "ikersiño": "iker" };
+  document.body.dataset.theme = themeMap[currentUser] || "";
 
   document.getElementById("userInitial").textContent    = username.charAt(0).toUpperCase();
   document.getElementById("expDate").value              = todayIso();
@@ -862,6 +928,7 @@ function attachAppListeners() {
   // Logout
   document.getElementById("logoutBtn").addEventListener("click", () => {
     if (!confirm(`¿Cerrar sesión de ${currentUser}?`)) return;
+    document.body.dataset.theme = "";
     clearSession(); location.reload();
   });
 
