@@ -1,5 +1,5 @@
-const cacheName = "gastos-v5-supabase";
-const files = ["./", "./index.html", "./styles.css?v=5", "./app.js?v=5", "./manifest.webmanifest", "./icon.svg"];
+const cacheName = "gastos-v7-global-supa";
+const files = ["./", "./index.html", "./styles.css?v=7", "./config.js?v=7", "./app.js?v=7", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

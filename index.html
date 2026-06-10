@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f766e">
   <title>Gastos Claros</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=5">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
 
@@ -284,7 +284,8 @@
 
           <h3 class="modal-sec">Sincronización (Supabase)</h3>
           <div class="sync-panel">
-            <p class="modal-hint">Pega estos datos de Supabase para usar tus gastos en varios dispositivos.</p>
+            <p class="modal-hint">Si configuras <strong>config.js</strong>, todos los dispositivos usarán la misma conexión sin volver a pegar estos datos.</p>
+            <p id="globalConfigBadge" class="badge-ok" hidden>Conexión incluida en el website</p>
             <label class="field-label">Project URL</label>
             <input id="supabaseUrl" type="url" class="field" placeholder="https://xxxx.supabase.co" autocomplete="off" spellcheck="false">
             <label class="field-label">Anon public key</label>
@@ -298,6 +299,7 @@
               <button id="syncUpBtn" class="btn-sync-up" type="button">Subir mis datos</button>
               <button id="syncDownBtn" class="btn-sync-down" type="button">Bajar datos</button>
             </div>
+            <p id="lastSyncLabel" class="modal-hint">Todavia no se sincronizo en este dispositivo.</p>
             <p id="syncStatus" class="sync-msg" hidden></p>
           </div>
 
@@ -353,6 +355,7 @@
 
   </div><!-- /appRoot -->
 
-  <script src="app.js?v=5"></script>
+  <script src="config.js?v=7"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
