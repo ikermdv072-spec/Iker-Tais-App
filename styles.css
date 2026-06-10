@@ -60,7 +60,7 @@ button:disabled { cursor: not-allowed; }
   padding: 24px 20px calc(28px + var(--safe-b));
 }
 .login-content::before {
-  content: "Gastos";
+  content: "Kiki's";
   display: block;
   color: #ffffff;
   font-size: 2.1rem;
@@ -559,3 +559,175 @@ input:focus, select:focus {
   .loan-btns, .two-col, .settings-actions { grid-template-columns: 1fr; }
   .budget-input-row { grid-template-columns: 1fr; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   TEMA TAISIÑA — Rosa oscuro + morado
+   ════════════════════════════════════════════════════════════ */
+[data-theme="tais"] {
+  --bg: #160c20;
+  --bg-2: #1f1033;
+  --surface: #2a1545;
+  --surface-soft: #381d58;
+  --text: #f5e8ff;
+  --muted: #c2a8de;
+  --faint: #9d83bc;
+  --border: #5e3182;
+  --primary: #d946ef;
+  --primary-2: #e879f9;
+  --primary-dark: #a21caf;
+  --income: #86efac;
+  --expense: #fca5a5;
+  --warning: #fcd34d;
+  --danger: #f87171;
+  --shadow: 0 14px 36px rgba(80, 0, 115, 0.52);
+  --shadow-soft: 0 6px 20px rgba(80, 0, 115, 0.32);
+}
+[data-theme="tais"] body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(139, 92, 246, 0.3), transparent 30rem),
+    radial-gradient(circle at 88% 84%, rgba(190, 24, 93, 0.24), transparent 28rem),
+    linear-gradient(180deg, #1f1033 0%, #160c20 100%);
+}
+[data-theme="tais"] .hero-card {
+  background:
+    linear-gradient(135deg, #5b21b6 0%, #9d174d 100%),
+    radial-gradient(circle at top right, rgba(255,255,255,0.14), transparent 14rem);
+}
+[data-theme="tais"] .login-bg::after {
+  background:
+    linear-gradient(180deg, rgba(22,12,32,0.32), rgba(22,12,32,0.93)),
+    radial-gradient(circle at 20% 20%, rgba(139,92,246,0.32), transparent 28rem);
+}
+[data-theme="tais"] .fab { box-shadow: 0 16px 30px rgba(217,70,239,0.48); }
+[data-theme="tais"] .stat-card.avg { border-left-color: var(--primary-2); }
+
+/* ════════════════════════════════════════════════════════════
+   TEMA IKERSIÑO — Oscuro
+   ════════════════════════════════════════════════════════════ */
+[data-theme="iker"] {
+  --bg: #0d1117;
+  --bg-2: #161b22;
+  --surface: #21262d;
+  --surface-soft: #2d333b;
+  --text: #dde4ef;
+  --muted: #8b949e;
+  --faint: #6e7681;
+  --border: #30363d;
+  --primary: #7c6af5;
+  --primary-2: #a5b4fc;
+  --primary-dark: #5b50d8;
+  --income: #3fb950;
+  --expense: #f85149;
+  --warning: #e3b341;
+  --danger: #f85149;
+  --shadow: 0 14px 36px rgba(0, 0, 0, 0.58);
+  --shadow-soft: 0 6px 20px rgba(0, 0, 0, 0.42);
+}
+[data-theme="iker"] body {
+  background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+}
+[data-theme="iker"] .hero-card {
+  background:
+    linear-gradient(135deg, #1a2233 0%, #111827 100%),
+    radial-gradient(circle at top right, rgba(124,106,245,0.1), transparent 14rem);
+  border: 1px solid #30363d;
+}
+[data-theme="iker"] .login-bg::after {
+  background:
+    linear-gradient(180deg, rgba(13,17,23,0.32), rgba(13,17,23,0.93)),
+    radial-gradient(circle at 20% 20%, rgba(124,106,245,0.22), transparent 28rem);
+}
+[data-theme="iker"] .fab { box-shadow: 0 16px 30px rgba(124,106,245,0.42); }
+[data-theme="iker"] .stat-card.avg { border-left-color: #60a5fa; }
+
+/* ── Overrides compartidos para ambos temas oscuros ── */
+[data-theme="tais"] .month-nav,
+[data-theme="iker"] .month-nav { background: rgba(255,255,255,0.07); border-color: var(--border); }
+[data-theme="tais"] .month-nav span,
+[data-theme="iker"] .month-nav span { color: var(--text); }
+
+[data-theme="tais"] .nav-arrow, [data-theme="tais"] .topbar-icon, [data-theme="tais"] .close-btn,
+[data-theme="iker"] .nav-arrow, [data-theme="iker"] .topbar-icon, [data-theme="iker"] .close-btn {
+  background: var(--surface); border-color: var(--border); color: var(--text);
+}
+[data-theme="tais"] .bottom-nav {
+  background: rgba(30,16,50,0.95); border-top-color: var(--border);
+  box-shadow: 0 -12px 30px rgba(60,0,85,0.32);
+}
+[data-theme="iker"] .bottom-nav {
+  background: rgba(22,27,34,0.96); border-top-color: var(--border);
+  box-shadow: 0 -12px 30px rgba(0,0,0,0.42);
+}
+[data-theme="tais"] .bnav-btn.active { background: rgba(217,70,239,0.18); color: var(--primary-2); }
+[data-theme="iker"] .bnav-btn.active { background: rgba(124,106,245,0.18); color: var(--primary-2); }
+
+[data-theme="tais"] .modal-box, [data-theme="tais"] .sheet-body,
+[data-theme="iker"] .modal-box, [data-theme="iker"] .sheet-body { background: var(--surface); }
+[data-theme="tais"] .modal-hdr, [data-theme="iker"] .modal-hdr { border-bottom-color: var(--border); }
+[data-theme="tais"] .sheet-handle, [data-theme="iker"] .sheet-handle { background: var(--border); }
+
+[data-theme="tais"] #appRoot input, [data-theme="tais"] #appRoot select,
+[data-theme="iker"] #appRoot input, [data-theme="iker"] #appRoot select {
+  background: var(--surface-soft); border-color: var(--border); color: var(--text);
+}
+[data-theme="tais"] #appRoot input::placeholder,
+[data-theme="iker"] #appRoot input::placeholder { color: var(--faint); }
+[data-theme="tais"] input:focus, [data-theme="tais"] select:focus {
+  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(217,70,239,0.22);
+}
+[data-theme="iker"] input:focus, [data-theme="iker"] select:focus {
+  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,106,245,0.22);
+}
+
+[data-theme="tais"] .chip, [data-theme="iker"] .chip {
+  background: var(--surface); border-color: var(--border); color: var(--muted);
+}
+[data-theme="tais"] .chip.on { background: rgba(217,70,239,0.22); border-color: var(--primary); color: var(--primary-2); }
+[data-theme="iker"] .chip.on { background: rgba(124,106,245,0.22); border-color: var(--primary); color: var(--primary-2); }
+
+[data-theme="tais"] .tx-icon, [data-theme="tais"] .qi-icon, [data-theme="tais"] .loan-avatar,
+[data-theme="iker"] .tx-icon, [data-theme="iker"] .qi-icon, [data-theme="iker"] .loan-avatar {
+  background: var(--surface-soft); color: var(--primary-2);
+}
+[data-theme="tais"] .tx-icon.income, [data-theme="iker"] .tx-icon.income {
+  background: rgba(134,239,172,0.15); color: var(--income);
+}
+[data-theme="tais"] .budget-track, [data-theme="tais"] .loan-prog,
+[data-theme="iker"] .budget-track, [data-theme="iker"] .loan-prog { background: var(--border); }
+[data-theme="tais"] .donut-track, [data-theme="iker"] .donut-track { stroke: var(--border); }
+
+[data-theme="tais"] .tx-del, [data-theme="tais"] .rec-del, [data-theme="tais"] .btn-loan-del,
+[data-theme="iker"] .tx-del, [data-theme="iker"] .rec-del, [data-theme="iker"] .btn-loan-del {
+  background: rgba(248,113,113,0.15); color: var(--danger);
+}
+[data-theme="tais"] .type-btn.active.exp, [data-theme="iker"] .type-btn.active.exp {
+  background: rgba(248,113,113,0.2); color: var(--expense);
+}
+[data-theme="tais"] .type-btn.active.inc, [data-theme="iker"] .type-btn.active.inc {
+  background: rgba(134,239,172,0.2); color: var(--income);
+}
+[data-theme="tais"] .add-type-row, [data-theme="iker"] .add-type-row { background: var(--bg); }
+[data-theme="tais"] .quick-item.done, [data-theme="iker"] .quick-item.done { background: var(--surface-soft); }
+[data-theme="tais"] .loans-banner-icon { background: rgba(217,70,239,0.15); }
+[data-theme="iker"] .loans-banner-icon { background: rgba(124,106,245,0.15); }
+
+[data-theme="tais"] .btn-sm-ghost, [data-theme="tais"] .btn-outlined,
+[data-theme="iker"] .btn-sm-ghost, [data-theme="iker"] .btn-outlined {
+  background: var(--surface); border-color: var(--border); color: var(--text);
+}
+[data-theme="tais"] .btn-outlined-warn, [data-theme="iker"] .btn-outlined-warn {
+  background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: var(--danger);
+}
+[data-theme="tais"] .btn-danger, [data-theme="tais"] .btn-danger-sm,
+[data-theme="iker"] .btn-danger, [data-theme="iker"] .btn-danger-sm {
+  background: rgba(248,113,113,0.15); color: var(--danger);
+}
+
+[data-theme="tais"] .badge-ok, [data-theme="tais"] .sync-msg.ok,
+[data-theme="iker"] .badge-ok, [data-theme="iker"] .sync-msg.ok {
+  background: rgba(52,211,153,0.15); color: #86efac;
+}
+[data-theme="tais"] .sync-msg.err, [data-theme="iker"] .sync-msg.err {
+  background: rgba(248,113,113,0.15); color: var(--danger);
+}
+[data-theme="tais"] .sql-box { background: #1a0828; color: #f0d0ff; }
