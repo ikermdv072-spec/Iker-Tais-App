@@ -1,10 +1,10 @@
 {
-  "name": "Gastos",
+  "name": "Gastos Claros",
   "short_name": "Gastos",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#fdf2f8",
-  "theme_color": "#be185d",
+  "background_color": "#eef4f1",
+  "theme_color": "#0f766e",
   "icons": [
     {
       "src": "icon.svg",

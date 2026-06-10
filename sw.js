@@ -1,4 +1,4 @@
-const cacheName = "gastos-v2";
+const cacheName = "gastos-v3-redesign";
 const files = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {
