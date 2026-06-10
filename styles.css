@@ -1126,6 +1126,15 @@ body {
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 /* ── Sync / Supabase ─────────────────────────────── */
+.settings-label {
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: -4px;
+}
+
 .settings-input {
   width: 100%;
   border: 1.5px solid var(--border);

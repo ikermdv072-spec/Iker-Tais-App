@@ -126,41 +126,58 @@ async function verifyPasskey(username) {
 // SUPABASE SYNC
 // ════════════════════════════════════════════════════════════
 
-const SUPA_URL = "TU_URL_SUPABASE";   // ej: https://xxxx.supabase.co
-const SUPA_KEY = "TU_ANON_KEY";        // tu anon key de Supabase
+const SUPA_CREDS_KEY = "mb:supabase:creds";
 
-const SUPA_HEADERS = {
-  "Content-Type": "application/json",
-  "apikey": SUPA_KEY,
-  "Authorization": `Bearer ${SUPA_KEY}`,
-};
+function getSupaCreds() {
+  try { return JSON.parse(localStorage.getItem(SUPA_CREDS_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function saveSupaCreds(url, key) {
+  localStorage.setItem(SUPA_CREDS_KEY, JSON.stringify({
+    url: url.trim().replace(/\/$/, ""),
+    key: key.trim(),
+  }));
+}
 
 function supaConfigured() {
-  return SUPA_URL && SUPA_URL !== "TU_URL_SUPABASE" && SUPA_KEY && SUPA_KEY !== "TU_ANON_KEY";
+  const { url, key } = getSupaCreds();
+  return !!(url && key);
+}
+
+function supaHeaders() {
+  const { key } = getSupaCreds();
+  return {
+    "Content-Type": "application/json",
+    "apikey": key,
+    "Authorization": `Bearer ${key}`,
+  };
 }
 
 async function syncUpload() {
   if (!supaConfigured()) return;
+  const { url } = getSupaCreds();
   const dataKeys = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
   const rows = dataKeys
     .map(k => ({ user_key: k, data: load(k, null), synced_at: new Date().toISOString() }))
     .filter(r => r.data !== null);
 
-  const res = await fetch(`${SUPA_URL}/rest/v1/sync_data`, {
+  const res = await fetch(`${url}/rest/v1/sync_data`, {
     method: "POST",
-    headers: { ...SUPA_HEADERS, "Prefer": "resolution=merge-duplicates" },
+    headers: { ...supaHeaders(), "Prefer": "resolution=merge-duplicates" },
     body: JSON.stringify(rows),
   });
   if (!res.ok) throw new Error(`Error ${res.status}`);
 }
 
 async function syncDownload() {
-  if (!supaConfigured()) throw new Error("Supabase no configurado.");
+  if (!supaConfigured()) throw new Error("Configurá la URL y clave primero.");
+  const { url } = getSupaCreds();
   const dataKeys = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
   const keyList  = dataKeys.map(k => `"${k}"`).join(",");
 
-  const res = await fetch(`${SUPA_URL}/rest/v1/sync_data?user_key=in.(${keyList})`, {
-    headers: SUPA_HEADERS,
+  const res = await fetch(`${url}/rest/v1/sync_data?user_key=in.(${keyList})`, {
+    headers: supaHeaders(),
   });
   if (!res.ok) throw new Error(`Error ${res.status}`);
 
@@ -568,6 +585,10 @@ function buildCatFilter() {
 
 function openSettings() {
   document.getElementById("currencySelect").value = settings.currency || "BOB";
+  const { url, key } = getSupaCreds();
+  document.getElementById("supabaseUrl").value = url || "";
+  document.getElementById("supabaseKey").value = key || "";
+  document.getElementById("syncActiveBadge").hidden = !supaConfigured();
   document.getElementById("syncStatus").hidden = true;
   buildBudgetInputs();
   buildRecurringList();
@@ -806,6 +827,15 @@ function attachAppListeners() {
   });
 
   // ── Supabase sync ─────────────────────────────────────────
+  document.getElementById("saveSupabaseBtn").addEventListener("click", () => {
+    const url = document.getElementById("supabaseUrl").value.trim();
+    const key = document.getElementById("supabaseKey").value.trim();
+    if (!url || !key) { showSyncStatus("Completá los dos campos.", "err"); return; }
+    saveSupaCreds(url, key);
+    document.getElementById("syncActiveBadge").hidden = false;
+    showSyncStatus("Guardado. ¡Sincronización activada! ✓", "ok");
+  });
+
   document.getElementById("syncUpBtn").addEventListener("click", async () => {
     const btn = document.getElementById("syncUpBtn");
     btn.disabled = true; btn.style.opacity = ".6";

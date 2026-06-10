@@ -244,9 +244,16 @@
             Configurar Face ID
           </button>
           <button id="removeBiometricBtn" class="btn-danger-sm" type="button" hidden>Quitar Face ID</button>
-          <h3 class="settings-section-title">Sincronización</h3>
-          <p class="sync-active-badge">☁ Sincronización automática activa</p>
-          <p class="hint">Los datos se sincronizan solos entre dispositivos cada vez que hacés un cambio.</p>
+          <h3 class="settings-section-title">Sincronización (Supabase)</h3>
+          <p class="hint">Pegá tu URL y clave para sincronizar entre dispositivos.</p>
+          <label class="settings-label">URL del proyecto</label>
+          <input id="supabaseUrl" type="url" placeholder="https://xxxx.supabase.co"
+                 class="settings-input" autocomplete="off" spellcheck="false">
+          <label class="settings-label">Anon Key</label>
+          <input id="supabaseKey" type="password" placeholder="eyJ..."
+                 class="settings-input" autocomplete="off">
+          <button id="saveSupabaseBtn" class="btn-biometric-setup" type="button">💾 Guardar y activar sync</button>
+          <p id="syncActiveBadge" class="sync-active-badge" hidden>☁ Sincronización activa</p>
           <div class="sync-row">
             <button id="syncUpBtn"   class="btn-sync-up"   type="button">⬆ Subir ahora</button>
             <button id="syncDownBtn" class="btn-sync-down" type="button">⬇ Bajar ahora</button>
