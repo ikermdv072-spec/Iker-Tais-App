@@ -1088,15 +1088,21 @@ document.getElementById("switchUserBtn").addEventListener("click", () => {
 // ENTRY POINT
 // ════════════════════════════════════════════════════════════
 
-applySetupFromUrl();
-const activeSession = getSession();
-if (activeSession) {
-  startApp(activeSession);
-} else {
-  const last = getLastUser();
-  if (last && hasPasskey(last)) showBiometricMode(last);
-  else { if (last) document.getElementById("loginUser").value = last; showPasswordMode(); }
-}
+(async function init() {
+  const users = loadUsers();
+  if (!users["taisiña"])  await createAccount("Taisiña",  "Taisonlybirdies1");
+  if (!users["ikersiño"]) await createAccount("Ikersiño", "8790");
+
+  applySetupFromUrl();
+  const activeSession = getSession();
+  if (activeSession) {
+    startApp(activeSession);
+  } else {
+    const last = getLastUser();
+    if (last && hasPasskey(last)) showBiometricMode(last);
+    else { if (last) document.getElementById("loginUser").value = last; showPasswordMode(); }
+  }
+})();
 
 window.addEventListener("focus", pullCloudChanges);
 document.addEventListener("visibilitychange", () => {

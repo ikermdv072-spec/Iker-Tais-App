@@ -405,6 +405,7 @@ input:focus, select:focus {
 
 .sheet-overlay, .modal { position: fixed; inset: 0; z-index: 200; }
 .sheet-backdrop, .modal { background: rgba(8, 25, 21, 0.48); }
+.sheet-backdrop { position: absolute; inset: 0; }
 .sheet-body {
   position: absolute;
   left: 50%;
@@ -828,6 +829,9 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   border-radius: 28px 28px 0 0;
   padding: 2px 16px calc(26px + var(--safe-b));
   gap: 14px;
+  max-height: 82dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .sheet-handle {
   width: 36px; height: 5px;
