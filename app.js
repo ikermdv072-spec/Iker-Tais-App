@@ -86,13 +86,23 @@ async function verifyPasskey(username) {
 // ════════════════════════════════════════════════════════════
 
 const SUPA_CREDS_KEY = "mb:supabase:creds";
+const LAST_SYNC_KEY = "mb:supabase:last-sync";
 
+function getBundledSupaCreds() {
+  const cfg = window.GASTOS_SUPABASE_CONFIG || {};
+  const url = (cfg.url || "").trim().replace(/\/$/, "");
+  const key = (cfg.anonKey || cfg.key || "").trim();
+  const table = cleanTableName(cfg.table || "sync_data");
+  return url && key && table ? { url, key, table, bundled: true } : null;
+}
 function getSupaCreds() {
   try {
+    const bundled = getBundledSupaCreds();
+    if (bundled) return bundled;
     const creds = JSON.parse(localStorage.getItem(SUPA_CREDS_KEY)) || {};
     return { ...creds, table: creds.table || "sync_data" };
   }
-  catch { return {}; }
+  catch { return getBundledSupaCreds() || {}; }
 }
 function cleanTableName(table) {
   const value = (table || "sync_data").trim();
@@ -111,6 +121,23 @@ function supaConfigured() { const { url, key, table } = getSupaCreds(); return !
 function supaHeaders() {
   const { key } = getSupaCreds();
   return { "Content-Type": "application/json", "apikey": key, "Authorization": `Bearer ${key}` };
+}
+function syncKeys() {
+  return [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
+}
+function saveLastSync() {
+  localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+  renderLastSync();
+}
+function renderLastSync() {
+  const el = document.getElementById("lastSyncLabel");
+  if (!el) return;
+  const last = localStorage.getItem(LAST_SYNC_KEY);
+  if (!last) {
+    el.textContent = "Todavia no se sincronizo en este dispositivo.";
+    return;
+  }
+  el.textContent = "Ultima sincronizacion: " + new Date(last).toLocaleString("es");
 }
 function supaTableSql(table) {
   const tableName = cleanTableName(table) || "sync_data";
@@ -138,27 +165,30 @@ function renderSupabaseSql() {
 }
 
 async function syncUpload() {
-  if (!supaConfigured()) return;
+  if (!supaConfigured()) throw new Error("Configura Supabase primero.");
   const { url, table } = getSupaCreds();
-  const rows = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans]
+  const rows = syncKeys()
     .map(k => ({ user_key: k, data: load(k, null), synced_at: new Date().toISOString() }))
     .filter(r => r.data !== null);
-  const res = await fetch(`${url}/rest/v1/${table}`, {
+  if (!rows.length) throw new Error("No hay datos locales para subir.");
+  const res = await fetch(`${url}/rest/v1/${table}?on_conflict=user_key`, {
     method: "POST",
     headers: { ...supaHeaders(), "Prefer": "resolution=merge-duplicates" },
     body: JSON.stringify(rows),
   });
-  if (!res.ok) throw new Error(`Error ${res.status}`);
+  if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
+  saveLastSync();
 }
 
 async function syncDownload() {
   if (!supaConfigured()) throw new Error("Configurá la URL y clave primero.");
   const { url, table } = getSupaCreds();
-  const keys = [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
-  const res  = await fetch(`${url}/rest/v1/${table}?user_key=in.(${keys.map(k=>`"${k}"`).join(",")})`, {
+  const keys = syncKeys();
+  const keyFilter = keys.map(k => `"${k}"`).join(",");
+  const res  = await fetch(`${url}/rest/v1/${table}?user_key=in.(${encodeURIComponent(keyFilter)})`, {
     headers: supaHeaders(),
   });
-  if (!res.ok) throw new Error(`Error ${res.status}`);
+  if (!res.ok) throw new Error(`Error ${res.status}: ${await res.text()}`);
   const rows = await res.json();
   if (!rows.length) throw new Error("Sin datos remotos para este usuario.");
   rows.forEach(r => localStorage.setItem(r.user_key, JSON.stringify(r.data)));
@@ -169,9 +199,12 @@ async function syncDownload() {
   settings  = load(KEY.settings,  { currency: "BOB", locale: "es-BO" });
   loans     = load(KEY.loans,     []);
   renderAll();
+  saveLastSync();
 }
 
 let _syncTimer = null;
+let _cloudPullTimer = null;
+let _syncing = false;
 function autoSync() {
   clearTimeout(_syncTimer);
   _syncTimer = setTimeout(async () => {
@@ -181,6 +214,18 @@ function autoSync() {
 async function syncOnStart() {
   try { await syncDownload(); }
   catch (e) { if (!e.message.includes("Sin datos")) console.warn("Sync:", e.message); }
+}
+async function pullCloudChanges() {
+  if (_syncing || !currentUser || !supaConfigured() || document.hidden) return;
+  _syncing = true;
+  try { await syncDownload(); }
+  catch { /* silent */ }
+  finally { _syncing = false; }
+}
+function startCloudPolling() {
+  clearInterval(_cloudPullTimer);
+  if (!supaConfigured()) return;
+  _cloudPullTimer = setInterval(pullCloudChanges, 15000);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -591,8 +636,10 @@ function openSettings() {
   document.getElementById("supabaseKey").value = key || "";
   document.getElementById("supabaseTable").value = table || "sync_data";
   document.getElementById("syncActiveBadge").hidden = !supaConfigured();
+  document.getElementById("globalConfigBadge").hidden = !getBundledSupaCreds();
   document.getElementById("syncStatus").hidden = true;
   renderSupabaseSql();
+  renderLastSync();
   buildBudgetInputs();
   buildRecurringList();
   const recCat = document.getElementById("recCategory");
@@ -692,6 +739,7 @@ function startApp(username) {
   if (!startApp._listenersAttached) { attachAppListeners(); startApp._listenersAttached = true; }
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   syncOnStart();
+  startCloudPolling();
 
   // Page transition
   const loginEl = document.getElementById("loginScreen");
@@ -858,18 +906,24 @@ function attachAppListeners() {
   });
 
   // Supabase sync
-  document.getElementById("saveSupabaseBtn").addEventListener("click", () => {
+  document.getElementById("saveSupabaseBtn").addEventListener("click", async () => {
     const url = document.getElementById("supabaseUrl").value;
     const key = document.getElementById("supabaseKey").value;
     const table = document.getElementById("supabaseTable").value;
     if (!url || !key || !table) { showSyncStatus("Completá URL, anon key y tabla.", "err"); return; }
+    const btn = document.getElementById("saveSupabaseBtn");
+    btn.disabled = true; btn.style.opacity = ".6";
     try {
       saveSupaCreds(url, key, table);
       renderSupabaseSql();
       document.getElementById("syncActiveBadge").hidden = false;
-      showSyncStatus("Conexión guardada. Ahora puedes subir o bajar datos.", "ok");
+      await syncUpload();
+      startCloudPolling();
+      showSyncStatus("Conexión guardada y datos subidos. Abre el otro dispositivo con el mismo usuario y toca Bajar datos si no aparece solo.", "ok");
     } catch (err) {
       showSyncStatus(err.message, "err");
+    } finally {
+      btn.disabled = false; btn.style.opacity = "";
     }
   });
   document.getElementById("supabaseTable").addEventListener("input", renderSupabaseSql);
@@ -887,7 +941,7 @@ function attachAppListeners() {
   document.getElementById("syncUpBtn").addEventListener("click", async () => {
     const btn = document.getElementById("syncUpBtn");
     btn.disabled = true; btn.style.opacity = ".6";
-    try   { await syncUpload(); showSyncStatus("Datos subidos ✓", "ok"); }
+    try   { await syncUpload(); startCloudPolling(); showSyncStatus("Datos subidos. El otro dispositivo puede bajarlos.", "ok"); }
     catch (err) { showSyncStatus("Error: " + err.message, "err"); }
     finally { btn.disabled = false; btn.style.opacity = ""; }
   });
@@ -896,7 +950,7 @@ function attachAppListeners() {
     if (!confirm("¿Reemplazar datos locales con los de Supabase?")) return;
     const btn = document.getElementById("syncDownBtn");
     btn.disabled = true; btn.style.opacity = ".6";
-    try   { await syncDownload(); showSyncStatus("Datos bajados ✓", "ok"); }
+    try   { await syncDownload(); startCloudPolling(); showSyncStatus("Datos bajados.", "ok"); }
     catch (err) { showSyncStatus("Error: " + err.message, "err"); }
     finally { btn.disabled = false; btn.style.opacity = ""; }
   });
@@ -969,3 +1023,8 @@ if (activeSession) {
   if (last && hasPasskey(last)) showBiometricMode(last);
   else { if (last) document.getElementById("loginUser").value = last; showPasswordMode(); }
 }
+
+window.addEventListener("focus", pullCloudChanges);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) pullCloudChanges();
+});
