@@ -887,3 +887,89 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Scrolling ── */
 .view { overscroll-behavior-y: contain; }
+
+/* ════════════════════════════════════════════════════════════
+   LANDSCAPE PHONE
+   ════════════════════════════════════════════════════════════ */
+
+/* Safe areas laterales (notch en landscape) */
+@media (orientation: landscape) {
+  .topbar {
+    padding-left:  max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .view {
+    padding-left:  max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+  .bottom-nav {
+    padding-left:  max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+  }
+  /* Modal centrado en landscape igual que desktop */
+  .modal { place-items: center; padding: 10px; }
+  .modal-box { border-radius: 18px; max-height: 94dvh; }
+}
+
+/* Phone landscape — modo compacto (altura < 500px) */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root { --bnav-h: 52px; }
+
+  /* ── Topbar ── */
+  .topbar { height: calc(48px + env(safe-area-inset-top, 0px)); }
+
+  /* ── Bottom nav compacto ── */
+  .bottom-nav { height: calc(52px + var(--safe-b)); }
+  .bnav-btn   { min-height: 42px; font-size: 0.64rem; gap: 2px; padding: 4px 2px; }
+  .bnav-btn svg { width: 18px; height: 18px; }
+
+  /* ── FAB ── */
+  .fab { width: 50px; height: 50px; border-radius: 16px; bottom: calc(52px + 6px + var(--safe-b)); }
+
+  /* ── View padding ── */
+  .view { padding-bottom: calc(52px + 68px + var(--safe-b)); }
+
+  /* ── Hero card compacto ── */
+  .hero-card { padding: 12px 16px 12px; }
+  .hero-eyebrow { font-size: 0.6rem; }
+  .hero-balance { font-size: clamp(1.4rem, 5vw, 1.9rem); margin: 3px 0 10px; }
+  .hero-stat { padding: 7px 12px; gap: 2px; }
+  .hero-stat b { font-size: 0.9rem; }
+  .hero-stat span { font-size: 0.66rem; }
+  #savingsSection { margin-top: 8px; gap: 5px; }
+  .savings-track { height: 5px; }
+
+  /* ── Stats ── */
+  .stats-row { gap: 8px; margin-bottom: 8px; }
+  .stat-card { padding: 10px 12px; gap: 3px; border-radius: 12px; }
+  .stat-card strong { font-size: 0.95rem; }
+  .stat-card span   { font-size: 0.72rem; }
+
+  /* ── Sheet — 2 columnas en landscape ── */
+  .sheet-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px 14px;
+    padding: 0
+      max(16px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+    border-radius: 16px 16px 0 0;
+    max-height: 96dvh;
+  }
+  .sheet-handle { grid-column: 1 / -1; margin: 6px auto 0; }
+  .add-type-row { grid-column: 1 / -1; }
+  .add-num-row  { grid-column: 1; align-self: center; }
+  #addChips     { grid-column: 2; align-self: center; }
+  #addNote      { grid-column: 1; }
+  #addDate      { grid-column: 2; align-self: start; }
+  #addSaveBtn   { grid-column: 1 / -1; }
+
+  /* Elementos del sheet más chicos */
+  .type-btn { min-height: 34px; font-size: 0.86rem; }
+  .add-num-row input, .big-num-field input { min-height: 42px; font-size: 1.5rem; }
+  .chip { min-height: 30px; font-size: 0.8rem; padding: 5px 10px; }
+  .auth-form input, .field { min-height: 40px; padding: 8px 12px; }
+  .btn-auth, .btn-biometric, .btn-pink, .btn-success,
+  .btn-sync-up, .btn-sync-down, .submit-btn { min-height: 40px; }
+}
