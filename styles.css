@@ -792,19 +792,19 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .savings-track { height: 7px; }
 .savings-fill { transition: width 0.55s cubic-bezier(0.34, 1.2, 0.64, 1); }
 
-/* ── Stats cards ── */
+/* ── Stats cards — sin cuadro ── */
 .stats-row { gap: 10px; }
 .stat-card {
   border-radius: 18px;
   padding: 18px 16px;
   gap: 9px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
-.stat-card span   { font-size: 0.78rem; font-weight: 700; }
+.stat-card.today, .stat-card.avg { border-top: none; }
+.stat-card span   { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
 .stat-card strong { font-size: 1.3rem;  font-weight: 850; }
-.stat-card.today { border-top: 3px solid var(--primary); }
-.stat-card.avg   { border-top: 3px solid #3b82f6; }
-[data-theme="tais"] .stat-card.avg { border-top-color: var(--primary-2); }
-[data-theme="iker"] .stat-card.avg { border-top-color: #60a5fa; }
 
 /* ── Surface cards ── */
 .surface-card { border-radius: 18px; }
