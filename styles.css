@@ -1816,7 +1816,30 @@ select.field {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
 /* =============================================================
-   29. Reduced Motion
+   29. Login / App Transitions
+   ============================================================= */
+
+.login-screen.exit {
+  animation: loginExit 0.4s var(--ease-soft) forwards;
+  pointer-events: none;
+}
+
+@keyframes loginExit {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(0.96) translateY(-12px); }
+}
+
+#appRoot.app-entering {
+  animation: appEnter 0.45s var(--ease-out) both;
+}
+
+@keyframes appEnter {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* =============================================================
+   30. Reduced Motion
    ============================================================= */
 
 @media (prefers-reduced-motion: reduce) {
