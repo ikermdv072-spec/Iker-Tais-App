@@ -28,7 +28,6 @@ async function tryLogin(username, password) {
   const u = loadUsers()[username.toLowerCase()];
   if (!u) return false;
   if (u.salt) return u.pass === await hashPass(password, u.salt);
-  // Migrar hash legado djb2 → PBKDF2 en el primer login exitoso
   if (u.pass !== hashPassLegacy(password)) return false;
   const salt = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("");
   const users = loadUsers();
@@ -146,7 +145,7 @@ function supaHeaders() {
   return { "Content-Type": "application/json", "apikey": key, "Authorization": `Bearer ${key}` };
 }
 function syncKeys() {
-  return [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans];
+  return [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans, KEY.accounts, KEY.goals];
 }
 function saveLastSync() {
   localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
@@ -225,6 +224,8 @@ async function syncDownload() {
   recurring = load(KEY.recurring, []);
   settings  = load(KEY.settings,  { currency: "BOB", locale: "es-BO" });
   loans     = load(KEY.loans,     []);
+  accounts  = load(KEY.accounts,  []);
+  goals     = load(KEY.goals,     []);
   renderAll();
   saveLastSync();
 }
@@ -302,9 +303,11 @@ const KEY = {
   get recurring() { return `mb:${currentUser}:recurring:v1`; },
   get settings()  { return `mb:${currentUser}:settings:v1`;  },
   get loans()     { return `mb:${currentUser}:loans:v1`;     },
+  get accounts()  { return `mb:${currentUser}:accounts:v1`;  },
+  get goals()     { return `mb:${currentUser}:goals:v1`;     },
 };
 
-let expenses  = [], income = [], budgets = {}, recurring = [], settings = {}, loans = [];
+let expenses  = [], income = [], budgets = {}, recurring = [], settings = {}, loans = [], accounts = [], goals = [];
 let currentMonth = "";
 let selectedExpCat = "Comida";
 let selectedIncCat = "Familiar";
@@ -380,6 +383,10 @@ function renderAll() {
   renderMonthlyGoal(balance);
   renderTxList();
   renderLoans();
+  renderTrends();
+  renderNetWorth();
+  renderGoals();
+  renderBudgetAlerts(mExp);
   document.getElementById("addCurrSymbol").textContent = getCurrencySymbol();
 }
 
@@ -407,6 +414,25 @@ function renderBudgets(mExp) {
       ${r.limit > 0 ? `<div class="budget-track"><div class="budget-fill ${over ? "over" : warn ? "warn" : ""}" style="width:${pct}%"></div></div>` : ""}`;
     container.append(div);
   });
+}
+
+function renderBudgetAlerts(mExp) {
+  const banner = document.getElementById("budgetAlertBanner");
+  if (!banner) return;
+  const alerts = EXP_CATS.map(c => ({
+    ...c,
+    spent: sum(mExp.filter(e => e.category === c.id)),
+    limit: Number(budgets[c.id] || 0),
+  })).filter(r => r.limit > 0 && r.spent >= r.limit * 0.8);
+  banner.hidden = alerts.length === 0;
+  if (!alerts.length) return;
+  const over = alerts.filter(a => a.spent > a.limit);
+  const warn = alerts.filter(a => a.spent <= a.limit);
+  let msgs = [];
+  if (over.length) msgs.push(`${over.map(a => a.icon + " " + a.id).join(", ")}: excediste el presupuesto`);
+  if (warn.length) msgs.push(`${warn.map(a => a.icon + " " + a.id).join(", ")}: cerca del límite`);
+  banner.innerHTML = `<span class="alert-icon">${over.length ? "🚨" : "⚠️"}</span><span>${msgs.join(" · ")}</span>`;
+  banner.className = "budget-alert-banner" + (over.length ? " over" : " warn");
 }
 
 const DONUT_COLORS = ["#be185d","#7c3aed","#ea580c","#d97706","#059669","#0891b2","#c026d3"];
@@ -477,13 +503,136 @@ function renderMonthlyGoal(balance) {
   fill.style.background = pct >= 100 ? "var(--income)" : pct >= 50 ? "#fcd34d" : "var(--primary)";
 }
 
+// ── Tendencias mensuales ──────────────────────────────────
+
+function renderTrends() {
+  const svg = document.getElementById("trendsSvg");
+  if (!svg) return;
+  const [cy, cm] = currentMonth.split("-").map(Number);
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(cy, cm - 1 - i, 1);
+    months.push(d.toISOString().slice(0, 7));
+  }
+  const data = months.map(m => ({
+    label: new Date(m + "-01").toLocaleDateString("es", { month: "short" }),
+    inc: sum(income.filter(i => i.date.startsWith(m))),
+    exp: sum(expenses.filter(e => e.date.startsWith(m))),
+  }));
+  const maxVal = Math.max(...data.flatMap(d => [d.inc, d.exp]), 1);
+  const W = 500, H = 120, padL = 4, padR = 4, padT = 10, padB = 24;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const groupW = chartW / 6;
+  const barW = Math.max(groupW * 0.3, 8);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  let html = `<line x1="${padL}" y1="${padT + chartH}" x2="${W - padR}" y2="${padT + chartH}" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>`;
+  data.forEach((d, i) => {
+    const cx = padL + i * groupW + groupW / 2;
+    const incX = cx - barW - 1;
+    const expX = cx + 1;
+    const incH = maxVal > 0 ? Math.max((d.inc / maxVal) * chartH, d.inc > 0 ? 3 : 0) : 0;
+    const expH = maxVal > 0 ? Math.max((d.exp / maxVal) * chartH, d.exp > 0 ? 3 : 0) : 0;
+    html += `<rect x="${incX.toFixed(1)}" y="${(padT + chartH - incH).toFixed(1)}" width="${barW.toFixed(1)}" height="${incH.toFixed(1)}" rx="2" fill="rgba(134,239,172,0.65)"/>`;
+    html += `<rect x="${expX.toFixed(1)}" y="${(padT + chartH - expH).toFixed(1)}" width="${barW.toFixed(1)}" height="${expH.toFixed(1)}" rx="2" fill="rgba(252,165,165,0.65)"/>`;
+    html += `<text x="${cx.toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.38)">${d.label}</text>`;
+  });
+  svg.innerHTML = html;
+}
+
+// ── Patrimonio neto ───────────────────────────────────────
+
+function renderNetWorth() {
+  const section = document.getElementById("networthSection");
+  if (!section) return;
+  section.hidden = accounts.length === 0;
+  if (!accounts.length) return;
+  const assets      = accounts.filter(a => a.type === "asset").reduce((t, a) => t + Number(a.balance), 0);
+  const liabilities = accounts.filter(a => a.type === "liability").reduce((t, a) => t + Number(a.balance), 0);
+  const net = assets - liabilities;
+  document.getElementById("nwAssets").textContent = fmt(assets);
+  document.getElementById("nwLiabilities").textContent = fmt(liabilities);
+  const nwEl = document.getElementById("nwTotal");
+  nwEl.textContent = fmt(net);
+  nwEl.style.color = net >= 0 ? "var(--income)" : "var(--expense)";
+  const list = document.getElementById("accountsList");
+  list.innerHTML = "";
+  accounts.forEach(acc => {
+    const isLia = acc.type === "liability";
+    const div = document.createElement("div");
+    div.className = "account-item";
+    div.innerHTML = `
+      <span class="acc-icon">${esc(acc.icon || (isLia ? "💳" : "🏦"))}</span>
+      <span class="acc-name">${esc(acc.name)}</span>
+      <span class="acc-bal ${isLia ? "expense" : "income"}">${isLia ? "−" : ""}${fmt(acc.balance)}</span>
+      <button class="acc-del" type="button" title="Eliminar">✕</button>`;
+    div.querySelector(".acc-del").addEventListener("click", () => {
+      accounts = accounts.filter(a => a.id !== acc.id);
+      persist(KEY.accounts, accounts);
+      renderNetWorth(); autoSync();
+    });
+    list.append(div);
+  });
+}
+
+// ── Metas múltiples ───────────────────────────────────────
+
+function renderGoals() {
+  const section = document.getElementById("goalsSection");
+  if (!section) return;
+  section.hidden = goals.length === 0;
+  const list = document.getElementById("goalsList");
+  list.innerHTML = "";
+  goals.forEach(goal => {
+    const saved = goal.saved || 0;
+    const pct = goal.amount > 0 ? Math.min(100, (saved / goal.amount) * 100) : 0;
+    const color = goal.color || "var(--primary)";
+    const div = document.createElement("div");
+    div.className = "goal-item";
+    div.innerHTML = `
+      <div class="goal-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="goal-dot" style="background:${color}"></span>
+          <span class="goal-name">${esc(goal.name)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:0.78rem;color:var(--muted)">${Math.round(pct)}%</span>
+          <button class="goal-del" type="button">✕</button>
+        </div>
+      </div>
+      <div class="goal-amounts">
+        <span>${fmt(saved)} ahorrado</span>
+        <span>Meta: ${fmt(goal.amount)}</span>
+      </div>
+      <div class="goal-track"><div class="goal-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="goal-add-row">
+        <input type="number" inputmode="decimal" min="0.01" step="0.01" class="goal-add-input field" placeholder="Agregar monto">
+        <button class="btn-sm-pink goal-add-btn" type="button">+ Ahorro</button>
+      </div>`;
+    div.querySelector(".goal-del").addEventListener("click", () => {
+      goals = goals.filter(g => g.id !== goal.id);
+      persist(KEY.goals, goals); renderGoals(); autoSync();
+    });
+    div.querySelector(".goal-add-btn").addEventListener("click", () => {
+      const inp = div.querySelector(".goal-add-input");
+      const amount = Number(inp.value);
+      if (!amount || amount <= 0) return;
+      const idx = goals.findIndex(g => g.id === goal.id);
+      if (idx !== -1) goals[idx].saved = (goals[idx].saved || 0) + amount;
+      persist(KEY.goals, goals); inp.value = ""; renderGoals(); autoSync();
+    });
+    list.append(div);
+  });
+}
+
 function renderTxList() {
-  const fromVal = document.getElementById("rangeFrom")?.value;
-  const toVal   = document.getElementById("rangeTo")?.value;
-  const filter  = document.getElementById("catFilter").value;
-  const list    = document.getElementById("txList");
-  const empty   = document.getElementById("emptyMsg");
-  const tpl     = document.getElementById("txTpl");
+  const fromVal   = document.getElementById("rangeFrom")?.value;
+  const toVal     = document.getElementById("rangeTo")?.value;
+  const filter    = document.getElementById("catFilter").value;
+  const searchVal = (document.getElementById("txSearch")?.value || "").toLowerCase().trim();
+  const list      = document.getElementById("txList");
+  const empty     = document.getElementById("emptyMsg");
+  const tpl       = document.getElementById("txTpl");
 
   const srcExp = fromVal && toVal
     ? expenses.filter(e => e.date >= fromVal && e.date <= toVal)
@@ -510,6 +659,11 @@ function renderTxList() {
     if (filter === "all")     return true;
     if (filter === "_income") return tx.type === "income";
     return tx.category === filter;
+  }).filter(tx => {
+    if (!searchVal) return true;
+    return (tx.note || "").toLowerCase().includes(searchVal) ||
+           tx.category.toLowerCase().includes(searchVal) ||
+           String(tx.amount).includes(searchVal);
   }).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
 
   list.innerHTML = "";
@@ -542,21 +696,32 @@ function renderQuickItems() {
     container.innerHTML = '<p style="color:var(--muted);font-size:.85rem;padding:20px 0;text-align:center">No hay gastos fijos. Configuralos en ⚙ para verlos acá.</p>';
     return;
   }
+  const today = new Date().getDate();
   recurring.forEach(rec => {
     const sid   = `rec:${rec.id}:${currentMonth}`;
     const added = expenses.some(e => e.sourceId === sid);
-    const div   = document.createElement("div");
-    div.className = "quick-item" + (added ? " done" : "");
+    const dueDay = rec.dueDay ? Number(rec.dueDay) : null;
+    let dueBadge = "";
+    if (rec.paused) {
+      dueBadge = `<span class="sub-badge paused">⏸ Pausado</span>`;
+    } else if (dueDay) {
+      const diff = dueDay - today;
+      if (diff < 0 && !added) dueBadge = `<span class="sub-badge due">⚠ Venció día ${dueDay}</span>`;
+      else if (diff >= 0 && diff <= 3) dueBadge = `<span class="sub-badge soon">🔔 Vence día ${dueDay}</span>`;
+      else dueBadge = `<span class="sub-badge ok">· día ${dueDay}</span>`;
+    }
+    const div = document.createElement("div");
+    div.className = "quick-item" + (added ? " done" : "") + (rec.paused ? " paused-item" : "");
     div.innerHTML = `
       <div class="qi-left">
         <span class="qi-icon">${catIcon(rec.category)}</span>
         <div>
           <div class="qi-name">${esc(rec.name)}</div>
-          <div class="qi-cat">${rec.category}${added ? " · ✓ Ya registrado" : ""}</div>
+          <div class="qi-cat">${rec.category}${added ? " · ✓ Ya registrado" : ""}${dueBadge}</div>
         </div>
       </div>
       <span class="qi-amt">${fmt(rec.amount)}</span>`;
-    if (!added) {
+    if (!added && !rec.paused) {
       div.addEventListener("click", () => {
         expenses.push({ id: crypto.randomUUID(), amount: rec.amount, category: rec.category,
           date: currentMonth + "-01", note: rec.name, createdAt: Date.now(), sourceId: sid });
@@ -651,7 +816,6 @@ function showView(name) {
   if (name === "fijos") renderQuickItems();
 }
 
-// Add bottom sheet
 function openAddModal() {
   setAddType("expense");
   document.getElementById("addAmount").value = "";
@@ -754,6 +918,8 @@ function openSettings() {
   renderLastSync();
   buildBudgetInputs();
   buildRecurringList();
+  buildAccountsSettingsList();
+  buildGoalsSettingsList();
   const recCat = document.getElementById("recCategory");
   recCat.innerHTML = EXP_CATS.map(c => `<option value="${c.id}">${c.icon} ${c.id}</option>`).join("");
   isPlatformAvailable().then(avail => {
@@ -800,10 +966,49 @@ function buildRecurringList() {
   recurring.forEach(rec => {
     const div = document.createElement("div");
     div.className = "rec-item";
-    div.innerHTML = `<span>${catIcon(rec.category)} ${esc(rec.name)}</span><span>${fmt(rec.amount)}</span><button class="rec-del" type="button">✕</button>`;
+    const pausedText = rec.paused ? " · ⏸" : "";
+    const dueText = rec.dueDay ? ` · día ${rec.dueDay}` : "";
+    div.innerHTML = `<span>${catIcon(rec.category)} ${esc(rec.name)}${dueText}${pausedText}</span><span>${fmt(rec.amount)}</span><button class="rec-del" type="button">✕</button>`;
     div.querySelector(".rec-del").addEventListener("click", () => {
       recurring = recurring.filter(r => r.id !== rec.id);
       persist(KEY.recurring, recurring); buildRecurringList();
+    });
+    container.append(div);
+  });
+}
+
+function buildAccountsSettingsList() {
+  const container = document.getElementById("accountsSettingsList");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!accounts.length) { container.innerHTML = '<p class="modal-hint" style="margin-bottom:4px">Sin cuentas.</p>'; return; }
+  accounts.forEach(acc => {
+    const isLia = acc.type === "liability";
+    const div = document.createElement("div");
+    div.className = "rec-item";
+    div.innerHTML = `<span>${esc(acc.icon || (isLia ? "💳" : "🏦"))} ${esc(acc.name)}</span><span class="${isLia ? "expense" : "income"}">${isLia ? "−" : ""}${fmt(acc.balance)}</span><button class="rec-del" type="button">✕</button>`;
+    div.querySelector(".rec-del").addEventListener("click", () => {
+      accounts = accounts.filter(a => a.id !== acc.id);
+      persist(KEY.accounts, accounts);
+      buildAccountsSettingsList(); renderNetWorth(); autoSync();
+    });
+    container.append(div);
+  });
+}
+
+function buildGoalsSettingsList() {
+  const container = document.getElementById("goalsSettingsList");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!goals.length) { container.innerHTML = '<p class="modal-hint" style="margin-bottom:4px">Sin metas.</p>'; return; }
+  goals.forEach(goal => {
+    const div = document.createElement("div");
+    div.className = "rec-item";
+    div.innerHTML = `<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:2px;background:${goal.color || 'var(--primary)'}"></span>${esc(goal.name)}</span><span>${fmt(goal.amount)}</span><button class="rec-del" type="button">✕</button>`;
+    div.querySelector(".rec-del").addEventListener("click", () => {
+      goals = goals.filter(g => g.id !== goal.id);
+      persist(KEY.goals, goals);
+      buildGoalsSettingsList(); renderGoals(); autoSync();
     });
     container.append(div);
   });
@@ -839,8 +1044,9 @@ function startApp(username) {
   recurring = load(KEY.recurring, []);
   settings  = load(KEY.settings,  { currency: "BOB", locale: "es-BO" });
   loans     = load(KEY.loans,     []);
+  accounts  = load(KEY.accounts,  []);
+  goals     = load(KEY.goals,     []);
 
-  // Per-user theme
   const themes = { "taisiña": "tais", "ikersiño": "iker" };
   document.body.dataset.theme = themes[currentUser] || "";
 
@@ -850,7 +1056,6 @@ function startApp(username) {
 
   buildCatFilter();
 
-  // Initialize date range inputs to current month
   const rangeFromEl = document.getElementById("rangeFrom");
   const rangeToEl   = document.getElementById("rangeTo");
   if (rangeFromEl && !rangeFromEl.value) rangeFromEl.value = currentMonth + "-01";
@@ -861,7 +1066,6 @@ function startApp(username) {
   syncOnStart();
   startCloudPolling();
 
-  // Page transition
   const loginEl = document.getElementById("loginScreen");
   const appEl   = document.getElementById("appRoot");
   appEl.hidden  = false;
@@ -931,13 +1135,14 @@ function attachAppListeners() {
     renderAll(); autoSync();
   });
 
-  // Category filter
-  document.getElementById("catFilter").addEventListener("change", renderAll);
+  // Category filter & search
+  document.getElementById("catFilter").addEventListener("change", renderTxList);
+  document.getElementById("txSearch")?.addEventListener("input", renderTxList);
   document.getElementById("exportBtn").addEventListener("click",  exportCsv);
 
   // Date range filter
-  document.getElementById("rangeFrom").addEventListener("change", renderAll);
-  document.getElementById("rangeTo").addEventListener("change",   renderAll);
+  document.getElementById("rangeFrom").addEventListener("change", renderTxList);
+  document.getElementById("rangeTo").addEventListener("change",   renderTxList);
 
   // Settings
   document.getElementById("settingsBtn").addEventListener("click",    openSettings);
@@ -945,18 +1150,71 @@ function attachAppListeners() {
   document.getElementById("settingsModal").addEventListener("click",  e => { if (e.target === e.currentTarget) closeSettings(); });
   document.getElementById("manageFixedBtn").addEventListener("click", openSettings);
 
+  // Recurring form (fijos)
   document.getElementById("recurringForm").addEventListener("submit", e => {
     e.preventDefault();
-    const name = document.getElementById("recName").value.trim();
-    const amount = Number(document.getElementById("recAmount").value);
+    const name     = document.getElementById("recName").value.trim();
+    const amount   = Number(document.getElementById("recAmount").value);
     const category = document.getElementById("recCategory").value;
+    const dueDay   = Number(document.getElementById("recDueDay").value) || null;
+    const paused   = document.getElementById("recPaused").value === "1";
     if (!name || !amount) return;
-    recurring.push({ id: crypto.randomUUID(), name, amount, category });
+    recurring.push({ id: crypto.randomUUID(), name, amount, category, dueDay, paused });
     persist(KEY.recurring, recurring);
-    document.getElementById("recName").value = document.getElementById("recAmount").value = "";
+    document.getElementById("recName").value = "";
+    document.getElementById("recAmount").value = "";
+    document.getElementById("recDueDay").value = "";
+    document.getElementById("recPaused").value = "0";
     buildRecurringList();
   });
 
+  // Bank selector auto-fill
+  document.getElementById("accBank")?.addEventListener("change", () => {
+    const val = document.getElementById("accBank").value;
+    if (!val) return;
+    const [bankName, , bankType] = val.split("|");
+    const nameEl = document.getElementById("accName");
+    const typeEl = document.getElementById("accType");
+    if (!nameEl.value) nameEl.value = bankName;
+    typeEl.value = bankType || "asset";
+  });
+
+  // Account form
+  document.getElementById("accountForm")?.addEventListener("submit", e => {
+    e.preventDefault();
+    const bankVal = document.getElementById("accBank").value;
+    const name    = document.getElementById("accName").value.trim();
+    const balance = Number(document.getElementById("accBalance").value);
+    const type    = document.getElementById("accType").value;
+    const icon    = bankVal ? bankVal.split("|")[1] : "🏦";
+    if (!name || isNaN(balance)) return;
+    accounts.push({ id: crypto.randomUUID(), name, balance, type, icon });
+    persist(KEY.accounts, accounts);
+    document.getElementById("accBank").value    = "";
+    document.getElementById("accName").value    = "";
+    document.getElementById("accBalance").value = "";
+    buildAccountsSettingsList(); renderNetWorth(); autoSync();
+  });
+
+  // Goal form
+  document.getElementById("goalForm")?.addEventListener("submit", e => {
+    e.preventDefault();
+    const name   = document.getElementById("goalName").value.trim();
+    const amount = Number(document.getElementById("goalAmount").value);
+    const color  = document.getElementById("goalColor").value;
+    if (!name || !amount) return;
+    goals.push({ id: crypto.randomUUID(), name, amount, color, saved: 0 });
+    persist(KEY.goals, goals);
+    document.getElementById("goalName").value   = "";
+    document.getElementById("goalAmount").value = "";
+    buildGoalsSettingsList(); renderGoals(); autoSync();
+  });
+
+  // Shortcuts to settings from inicio
+  document.getElementById("addAccountBtn")?.addEventListener("click", openSettings);
+  document.getElementById("addGoalBtnShortcut")?.addEventListener("click", openSettings);
+
+  // Biometric
   document.getElementById("setupBiometricBtn").addEventListener("click", async () => {
     const btn  = document.getElementById("setupBiometricBtn");
     const hint = document.getElementById("biometricHint");
@@ -980,8 +1238,8 @@ function attachAppListeners() {
 
   document.getElementById("deleteAllBtn").addEventListener("click", () => {
     if (!confirm(`¿Borrar todos los datos de ${currentUser}?`)) return;
-    expenses = []; income = []; budgets = {}; recurring = []; loans = [];
-    [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans].forEach(k => localStorage.removeItem(k));
+    expenses = []; income = []; budgets = {}; recurring = []; loans = []; accounts = []; goals = [];
+    [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans, KEY.accounts, KEY.goals].forEach(k => localStorage.removeItem(k));
     document.getElementById("settingsModal").hidden = true;
     renderAll();
   });
@@ -1056,7 +1314,7 @@ function attachAppListeners() {
       document.getElementById("syncActiveBadge").hidden = false;
       await syncUpload();
       startCloudPolling();
-      showSyncStatus("Conexión guardada y datos subidos. Abre el otro dispositivo con el mismo usuario y toca Bajar datos si no aparece solo.", "ok");
+      showSyncStatus("Conexión guardada y datos subidos.", "ok");
     } catch (err) {
       showSyncStatus(err.message, "err");
     } finally {
@@ -1068,15 +1326,15 @@ function attachAppListeners() {
     const url = getSetupUrl();
     if (!url) return;
     if (navigator.share) {
-      try { await navigator.share({ title: "Gastos Claros — activar sincronización", url }); }
+      try { await navigator.share({ title: "Gastos — activar sincronización", url }); }
       catch { /* usuario canceló */ }
       return;
     }
     try {
       await navigator.clipboard.writeText(url);
-      showSyncStatus("Link copiado. Abrílo en el otro dispositivo para activar la sincronización automáticamente.", "ok");
+      showSyncStatus("Link copiado. Abrílo en el otro dispositivo.", "ok");
     } catch {
-      showSyncStatus("No se pudo copiar. Copiá la URL manualmente desde la barra del navegador.", "err");
+      showSyncStatus("No se pudo copiar. Copiá la URL manualmente.", "err");
     }
   });
   document.getElementById("copySupabaseSqlBtn").addEventListener("click", async () => {
@@ -1086,14 +1344,14 @@ function attachAppListeners() {
       showSyncStatus("SQL copiado.", "ok");
     } catch {
       document.getElementById("supabaseSql").select();
-      showSyncStatus("No pude copiarlo automáticamente. Ya lo dejé seleccionado.", "ok");
+      showSyncStatus("No pude copiarlo. Ya lo dejé seleccionado.", "ok");
     }
   });
 
   document.getElementById("syncUpBtn").addEventListener("click", async () => {
     const btn = document.getElementById("syncUpBtn");
     btn.disabled = true; btn.style.opacity = ".6";
-    try   { await syncUpload(); startCloudPolling(); showSyncStatus("Datos subidos. El otro dispositivo puede bajarlos.", "ok"); }
+    try   { await syncUpload(); startCloudPolling(); showSyncStatus("Datos subidos.", "ok"); }
     catch (err) { showSyncStatus("Error: " + err.message, "err"); }
     finally { btn.disabled = false; btn.style.opacity = ""; }
   });
