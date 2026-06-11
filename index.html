@@ -123,6 +123,8 @@
 
         <!-- Budget alert banner -->
         <div id="budgetAlertBanner" class="budget-alert-banner" hidden></div>
+        <!-- Low balance banner -->
+        <div id="lowBalanceBanner" class="budget-alert-banner warn" hidden></div>
 
         <!-- Net worth -->
         <div class="surface-card" id="networthSection" hidden>
@@ -200,6 +202,24 @@
             <span class="trends-leg-item"><span class="trends-dot inc"></span>Ingresos</span>
             <span class="trends-leg-item"><span class="trends-dot exp"></span>Gastos</span>
           </div>
+        </div>
+
+        <!-- Spending Insights -->
+        <div class="surface-card" id="insightsSection" hidden>
+          <div class="card-row-header">
+            <span class="card-label">Gastos vs mes anterior</span>
+            <span id="insightsTotalChange" class="insights-total"></span>
+          </div>
+          <div id="insightsList"></div>
+        </div>
+
+        <!-- Cash Flow Forecast -->
+        <div class="surface-card" id="forecastSection" hidden>
+          <div class="card-row-header">
+            <span class="card-label">Gastos fijos pendientes</span>
+            <span class="card-label-muted">este mes</span>
+          </div>
+          <div id="forecastContent"></div>
         </div>
 
         <!-- Metas múltiples -->
@@ -315,6 +335,7 @@
         </div>
         <div class="chips" id="addChips"></div>
         <input id="addNote" type="text"  placeholder="Nota (opcional)" class="field" autocomplete="off">
+        <select id="addAccount" class="field add-account-sel"></select>
         <input id="addDate" type="date"  class="field">
         <button id="addSaveBtn" class="btn-pink" type="button">Guardar gasto</button>
       </div>
@@ -390,7 +411,8 @@
               </optgroup>
               <optgroup label="Billeteras digitales">
                 <option value="Tigo Money|📱|asset">Tigo Money</option>
-                <option value="Billetera Móvil|💳|asset">Billetera Móvil</option>
+                <option value="Billetera Móvil|💳|asset">Billetera Móvil (QR)</option>
+                <option value="Simple|📲|asset">Simple (Banco Fassil)</option>
               </optgroup>
               <optgroup label="Otro">
                 <option value="Efectivo|💵|asset">Efectivo</option>

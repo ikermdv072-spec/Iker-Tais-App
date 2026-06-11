@@ -349,6 +349,25 @@ function loanPending(l) {
 function getCurrencySymbol() {
   return { BOB:"Bs", ARS:"$", USD:"US$", CLP:"$", PEN:"S/", MXN:"$", COP:"$", UYU:"$", PYG:"₲" }[settings.currency || "BOB"] || "$";
 }
+function populateAccountSelect(selectedId = "") {
+  const sel = document.getElementById("addAccount");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Sin cuenta —</option>';
+  accounts.filter(a => a.type === "asset").forEach(acc => {
+    const opt = document.createElement("option");
+    opt.value = acc.id;
+    opt.textContent = `${acc.icon || "🏦"} ${acc.name} · ${fmt(acc.balance)}`;
+    if (acc.id === selectedId) opt.selected = true;
+    sel.append(opt);
+  });
+}
+function updateAccountBalance(accountId, delta) {
+  if (!accountId) return;
+  const idx = accounts.findIndex(a => a.id === accountId);
+  if (idx === -1) return;
+  accounts[idx].balance = Math.round((Number(accounts[idx].balance) + delta) * 100) / 100;
+  persist(KEY.accounts, accounts);
+}
 
 // ════════════════════════════════════════════════════════════
 // RENDER
@@ -387,6 +406,9 @@ function renderAll() {
   renderNetWorth();
   renderGoals();
   renderBudgetAlerts(mExp);
+  renderSpendingInsights();
+  renderCashFlowForecast();
+  renderLowBalanceAlert();
   document.getElementById("addCurrSymbol").textContent = getCurrencySymbol();
 }
 
@@ -625,6 +647,71 @@ function renderGoals() {
   });
 }
 
+function renderSpendingInsights() {
+  const section = document.getElementById("insightsSection");
+  if (!section) return;
+  const [cy, cm] = currentMonth.split("-").map(Number);
+  const prevMonth = new Date(cy, cm - 2, 1).toISOString().slice(0, 7);
+  const currExp = expenses.filter(e => e.date.startsWith(currentMonth));
+  const prevExp = expenses.filter(e => e.date.startsWith(prevMonth));
+  const currTotal = sum(currExp), prevTotal = sum(prevExp);
+  if (currTotal === 0 && prevTotal === 0) { section.hidden = true; return; }
+  section.hidden = false;
+  const totalChange = prevTotal > 0 ? ((currTotal - prevTotal) / prevTotal) * 100 : null;
+  const totalEl = document.getElementById("insightsTotalChange");
+  if (totalEl && totalChange !== null) {
+    const up = currTotal > prevTotal;
+    totalEl.textContent = `${up ? "▲" : "▼"} ${Math.abs(Math.round(totalChange))}% vs mes anterior`;
+    totalEl.style.color = up ? "var(--expense)" : "var(--income)";
+  } else if (totalEl) { totalEl.textContent = ""; }
+  const rows = EXP_CATS.map(c => ({
+    ...c,
+    curr: sum(currExp.filter(e => e.category === c.id)),
+    prev: sum(prevExp.filter(e => e.category === c.id)),
+  })).filter(r => r.curr > 0 || r.prev > 0)
+    .sort((a, b) => b.curr - a.curr).slice(0, 6);
+  document.getElementById("insightsList").innerHTML = rows.map(r => {
+    const change = r.prev > 0 ? ((r.curr - r.prev) / r.prev) * 100 : null;
+    const badge = change === null ? "" :
+      change > 5  ? `<span class="ins-up">▲${Math.round(change)}%</span>` :
+      change < -5 ? `<span class="ins-down">▼${Math.abs(Math.round(change))}%</span>` :
+                    `<span class="ins-same">≈</span>`;
+    return `<div class="insight-row"><span class="ins-cat">${r.icon} ${r.id}</span><span class="ins-amt">${fmt(r.curr)}</span>${badge}</div>`;
+  }).join("");
+}
+
+function renderCashFlowForecast() {
+  const section = document.getElementById("forecastSection");
+  if (!section) return;
+  const pending = recurring.filter(rec => {
+    const sid = `rec:${rec.id}:${currentMonth}`;
+    return !rec.paused && !expenses.some(e => e.sourceId === sid);
+  });
+  section.hidden = pending.length === 0;
+  if (!pending.length) return;
+  const pendingTotal = pending.reduce((t, r) => t + Number(r.amount), 0);
+  const projected = sum(income.filter(i => i.date.startsWith(currentMonth)))
+                  - sum(expenses.filter(e => e.date.startsWith(currentMonth)))
+                  - pendingTotal;
+  document.getElementById("forecastContent").innerHTML =
+    pending.map(r => `<div class="forecast-item"><span>${catIcon(r.category)} ${esc(r.name)}</span><span class="expense">−${fmt(r.amount)}</span></div>`).join("") +
+    `<div class="forecast-row"><span class="forecast-label">Balance proyectado al fin del mes</span><span class="forecast-amt ${projected >= 0 ? "income" : "expense"}">${fmt(projected)}</span></div>`;
+}
+
+function renderLowBalanceAlert() {
+  const banner = document.getElementById("lowBalanceBanner");
+  if (!banner) return;
+  const negative = accounts.filter(a => a.type === "asset" && Number(a.balance) < 0);
+  const low      = accounts.filter(a => a.type === "asset" && Number(a.balance) >= 0 && Number(a.balance) < 200);
+  banner.hidden = negative.length === 0 && low.length === 0;
+  if (banner.hidden) return;
+  const msgs = [];
+  if (negative.length) msgs.push(`Saldo negativo: ${negative.map(a => (a.icon || "🏦") + " " + a.name).join(", ")}`);
+  if (low.length)      msgs.push(`Saldo bajo: ${low.map(a => (a.icon || "🏦") + " " + a.name).join(", ")}`);
+  banner.innerHTML = `<span class="alert-icon">${negative.length ? "🚨" : "⚠️"}</span><span>${msgs.join(" · ")}</span>`;
+  banner.className = "budget-alert-banner" + (negative.length ? " over" : " warn");
+}
+
 function renderTxList() {
   const fromVal   = document.getElementById("rangeFrom")?.value;
   const toVal     = document.getElementById("rangeTo")?.value;
@@ -675,14 +762,20 @@ function renderTxList() {
     icon.textContent = catIcon(tx.category);
     if (tx.type === "income") icon.classList.add("income");
     node.querySelector(".tx-note").textContent = tx.note || tx.category;
-    node.querySelector(".tx-meta").textContent = `${tx.category} · ${fmtDate(tx.date)}`;
+    const txAcc = tx.accountId ? accounts.find(a => a.id === tx.accountId) : null;
+    node.querySelector(".tx-meta").textContent = `${tx.category} · ${fmtDate(tx.date)}${txAcc ? " · " + (txAcc.icon || "🏦") + " " + txAcc.name : ""}`;
     const amt = node.querySelector(".tx-amt");
     amt.textContent = (tx.type === "expense" ? "−" : "+") + fmt(tx.amount);
     amt.classList.add(tx.type);
     node.querySelector(".tx-edit").addEventListener("click", () => openEditTx(tx));
     node.querySelector(".tx-del").addEventListener("click", () => {
-      if (tx.type === "expense") { expenses = expenses.filter(e => e.id !== tx.id); persist(KEY.expenses, expenses); }
-      else                       { income   = income.filter(i => i.id !== tx.id);   persist(KEY.income, income); }
+      if (tx.type === "expense") {
+        if (tx.accountId) updateAccountBalance(tx.accountId, +Number(tx.amount));
+        expenses = expenses.filter(e => e.id !== tx.id); persist(KEY.expenses, expenses);
+      } else {
+        if (tx.accountId) updateAccountBalance(tx.accountId, -Number(tx.amount));
+        income = income.filter(i => i.id !== tx.id); persist(KEY.income, income);
+      }
       renderAll(); autoSync();
     });
     list.append(node);
@@ -822,6 +915,8 @@ function openAddModal() {
   document.getElementById("addNote").value   = "";
   document.getElementById("addDate").value   = todayIso();
   document.getElementById("addCurrSymbol").textContent = getCurrencySymbol();
+  populateAccountSelect();
+  document.getElementById("addAccount").value = "";
   document.getElementById("addModal").hidden = false;
   setTimeout(() => document.getElementById("addAmount").focus(), 60);
 }
@@ -842,6 +937,7 @@ function openEditTx(tx) {
   document.getElementById("addNote").value   = tx.note || "";
   document.getElementById("addDate").value   = tx.date;
   document.getElementById("addCurrSymbol").textContent = getCurrencySymbol();
+  populateAccountSelect(tx.accountId || "");
   document.getElementById("addSaveBtn").textContent    = "Guardar cambios";
   document.getElementById("addSaveBtn").className      = "btn-pink";
   document.getElementById("addModal").hidden = false;
@@ -1107,27 +1203,40 @@ function attachAppListeners() {
 
   // Add modal: save
   document.getElementById("addSaveBtn").addEventListener("click", () => {
-    const amount = Number(document.getElementById("addAmount").value);
+    const amount    = Number(document.getElementById("addAmount").value);
     if (!amount || amount <= 0) return;
-    const note = document.getElementById("addNote").value.trim();
-    const date = document.getElementById("addDate").value;
-    const cat  = addType === "expense" ? selectedExpCat : selectedIncCat;
+    const note      = document.getElementById("addNote").value.trim();
+    const date      = document.getElementById("addDate").value;
+    const cat       = addType === "expense" ? selectedExpCat : selectedIncCat;
+    const accountId = document.getElementById("addAccount").value || null;
     if (editingTxId) {
       if (editingTxType === "expense") {
         const idx = expenses.findIndex(e => e.id === editingTxId);
-        if (idx !== -1) expenses[idx] = { ...expenses[idx], amount, category: cat, date, note };
-        persist(KEY.expenses, expenses);
+        if (idx !== -1) {
+          const old = expenses[idx];
+          if (old.accountId) updateAccountBalance(old.accountId, +Number(old.amount));
+          expenses[idx] = { ...old, amount, category: cat, date, note, accountId };
+          if (accountId) updateAccountBalance(accountId, -amount);
+          persist(KEY.expenses, expenses);
+        }
       } else {
         const idx = income.findIndex(i => i.id === editingTxId);
-        if (idx !== -1) income[idx] = { ...income[idx], amount, category: cat, date, note };
-        persist(KEY.income, income);
+        if (idx !== -1) {
+          const old = income[idx];
+          if (old.accountId) updateAccountBalance(old.accountId, -Number(old.amount));
+          income[idx] = { ...old, amount, category: cat, date, note, accountId };
+          if (accountId) updateAccountBalance(accountId, +amount);
+          persist(KEY.income, income);
+        }
       }
     } else {
       if (addType === "expense") {
-        expenses.push({ id: crypto.randomUUID(), amount, category: selectedExpCat, date, note, createdAt: Date.now() });
+        expenses.push({ id: crypto.randomUUID(), amount, category: selectedExpCat, date, note, createdAt: Date.now(), accountId });
+        if (accountId) updateAccountBalance(accountId, -amount);
         persist(KEY.expenses, expenses);
       } else {
-        income.push({ id: crypto.randomUUID(), amount, category: selectedIncCat, date, note, createdAt: Date.now() });
+        income.push({ id: crypto.randomUUID(), amount, category: selectedIncCat, date, note, createdAt: Date.now(), accountId });
+        if (accountId) updateAccountBalance(accountId, +amount);
         persist(KEY.income, income);
       }
     }

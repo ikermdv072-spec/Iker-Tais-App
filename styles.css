@@ -2077,3 +2077,59 @@ select.field {
 
 .paused-item { opacity: 0.6; }
 .paused-item .qi-amt { color: var(--faint); }
+
+/* =============================================================
+   37. Spending Insights
+   ============================================================= */
+
+.insights-total { font-size: 0.78rem; font-weight: 700; }
+
+.insight-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.insight-row:last-child { border-bottom: none; }
+.ins-cat  { flex: 1; font-size: 0.87rem; color: var(--text); }
+.ins-amt  { font-size: 0.87rem; font-weight: 700; min-width: 72px; text-align: right; }
+.ins-up   { font-size: 0.72rem; font-weight: 800; color: var(--expense); min-width: 46px; text-align: right; }
+.ins-down { font-size: 0.72rem; font-weight: 800; color: var(--income);  min-width: 46px; text-align: right; }
+.ins-same { font-size: 0.72rem; font-weight: 600; color: var(--faint);   min-width: 46px; text-align: right; }
+
+/* =============================================================
+   38. Cash Flow Forecast
+   ============================================================= */
+
+.forecast-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0 7px 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.forecast-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 2px;
+  margin-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.forecast-label { font-size: 0.83rem; color: var(--muted); font-weight: 600; }
+.forecast-amt { font-size: 0.95rem; font-weight: 800; }
+.forecast-amt.income  { color: var(--income); }
+.forecast-amt.expense { color: var(--expense); }
+
+/* =============================================================
+   39. Account selector in add modal
+   ============================================================= */
+
+.add-account-sel {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.add-account-sel option { background: #1a1028; }
