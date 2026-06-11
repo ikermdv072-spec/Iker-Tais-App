@@ -571,12 +571,12 @@ input:focus, select:focus {
 [data-theme="tais"] {
   --bg: #160c20;
   --bg-2: #1f1033;
-  --surface: #2a1545;
-  --surface-soft: #381d58;
+  --surface: #2e1658;
+  --surface-soft: #3c1d6e;
   --text: #f5e8ff;
   --muted: #c2a8de;
   --faint: #9d83bc;
-  --border: #5e3182;
+  --border: rgba(217,70,239,0.22);
   --primary: #d946ef;
   --primary-2: #e879f9;
   --primary-dark: #a21caf;
@@ -584,8 +584,8 @@ input:focus, select:focus {
   --expense: #fca5a5;
   --warning: #fcd34d;
   --danger: #f87171;
-  --shadow: 0 14px 36px rgba(80, 0, 115, 0.52);
-  --shadow-soft: 0 6px 20px rgba(80, 0, 115, 0.32);
+  --shadow: 0 14px 36px rgba(80, 0, 115, 0.48);
+  --shadow-soft: 0 4px 16px rgba(80, 0, 115, 0.22);
 }
 [data-theme="tais"] body {
   background:
@@ -596,9 +596,9 @@ input:focus, select:focus {
 [data-theme="tais"] .hero-card {
   background:
     linear-gradient(135deg, #5b21b6 0%, #9d174d 100%),
-    radial-gradient(circle at top right, rgba(255,255,255,0.14), transparent 14rem);
-  border: 1px solid rgba(217,70,239,0.35);
-  box-shadow: 0 14px 36px rgba(139,92,246,0.45), 0 0 0 1px rgba(217,70,239,0.12);
+    radial-gradient(circle at top right, rgba(255,255,255,0.1), transparent 14rem);
+  border: 1px solid rgba(217,70,239,0.4);
+  box-shadow: 0 16px 40px rgba(139,92,246,0.5);
 }
 [data-theme="tais"] .login-bg::after {
   background:
@@ -606,7 +606,6 @@ input:focus, select:focus {
     radial-gradient(circle at 20% 20%, rgba(139,92,246,0.32), transparent 28rem);
 }
 [data-theme="tais"] .fab { box-shadow: 0 16px 30px rgba(217,70,239,0.48); }
-[data-theme="tais"] .stat-card.avg { border-left-color: var(--primary-2); }
 
 /* ════════════════════════════════════════════════════════════
    TEMA IKERSIÑO — Oscuro
@@ -619,7 +618,7 @@ input:focus, select:focus {
   --text: #dde4ef;
   --muted: #8b949e;
   --faint: #6e7681;
-  --border: #30363d;
+  --border: #3d4452;
   --primary: #7c6af5;
   --primary-2: #a5b4fc;
   --primary-dark: #5b50d8;
@@ -634,10 +633,9 @@ input:focus, select:focus {
   background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
 }
 [data-theme="iker"] .hero-card {
-  background:
-    linear-gradient(135deg, #1a2233 0%, #111827 100%),
-    radial-gradient(circle at top right, rgba(124,106,245,0.1), transparent 14rem);
-  border: 1px solid #30363d;
+  background: linear-gradient(135deg, #1c2b44 0%, #111e35 100%);
+  border: 1px solid #3d4756;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.55);
 }
 [data-theme="iker"] .login-bg::after {
   background:
@@ -645,7 +643,6 @@ input:focus, select:focus {
     radial-gradient(circle at 20% 20%, rgba(124,106,245,0.22), transparent 28rem);
 }
 [data-theme="iker"] .fab { box-shadow: 0 16px 30px rgba(124,106,245,0.42); }
-[data-theme="iker"] .stat-card.avg { border-left-color: #60a5fa; }
 
 /* ── Overrides compartidos para ambos temas oscuros ── */
 [data-theme="tais"] .month-nav,
@@ -764,27 +761,18 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
   padding: 24px 22px 22px;
   margin-bottom: 4px;
 }
-/* Círculos decorativos detrás del contenido */
+/* decoración sutil — small, right corner */
 .hero-card::before {
   content: "";
   position: absolute;
   z-index: -1;
-  top: -55px; right: -38px;
-  width: 210px; height: 210px;
+  top: -20px; right: -20px;
+  width: 100px; height: 100px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
   pointer-events: none;
 }
-.hero-card::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  bottom: -82px; left: -26px;
-  width: 265px; height: 265px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.06);
-  pointer-events: none;
-}
+.hero-card::after { content: none; }
 .hero-eyebrow {
   font-size: 0.68rem;
   letter-spacing: 0.12em;
@@ -813,8 +801,8 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 }
 .stat-card span   { font-size: 0.78rem; font-weight: 700; }
 .stat-card strong { font-size: 1.3rem;  font-weight: 850; }
-.stat-card.today { border-left: none; border-top: 3px solid var(--primary); }
-.stat-card.avg   { border-left: none; border-top: 3px solid #3b82f6; }
+.stat-card.today { border-top: 3px solid var(--primary); }
+.stat-card.avg   { border-top: 3px solid #3b82f6; }
 [data-theme="tais"] .stat-card.avg { border-top-color: var(--primary-2); }
 [data-theme="iker"] .stat-card.avg { border-top-color: #60a5fa; }
 
