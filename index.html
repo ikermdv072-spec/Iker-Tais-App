@@ -3,58 +3,68 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f766e">
+  <meta name="theme-color" content="#0d0518">
   <title>Kiki's</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="stylesheet" href="styles.css?v=13">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="styles.css?v=1">
 </head>
 <body>
+
+  <!-- Animated mesh background (behind everything) -->
+  <div class="mesh-bg" aria-hidden="true"></div>
 
   <!-- ══════════════════════════════════
        LOGIN
   ══════════════════════════════════ -->
   <div id="loginScreen" class="login-screen">
-    <div class="login-bg">
-      <img src="photo.jpg" alt="" class="login-bg-img" onerror="this.style.display='none'">
-    </div>
     <div class="login-content">
-      <div id="biometricMode" hidden>
-        <div class="bio-user">
-          <div class="bio-initial" id="bioInitial">?</div>
-          <span id="bioName">Usuario</span>
-        </div>
-        <button id="biometricBtn" class="btn-biometric" type="button">
-          <svg class="faceid-svg" viewBox="0 0 24 24" fill="none">
-            <path d="M7 3H5a2 2 0 00-2 2v2M17 3h2a2 2 0 012 2v2M7 21H5a2 2 0 01-2-2v-2M17 21h2a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            <circle cx="9" cy="10.5" r="1.1" fill="currentColor"/>
-            <circle cx="15" cy="10.5" r="1.1" fill="currentColor"/>
-            <path d="M9 15.5c.8 1.4 5.2 1.4 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-          Entrar con Face ID
-        </button>
-        <p id="biometricError" class="auth-error" hidden>No se pudo verificar. Usá tu contraseña.</p>
-        <div class="bio-links">
-          <button id="usePwdBtn"     class="btn-text-xs" type="button">Usar contraseña</button>
-          <span class="bio-dot">·</span>
-          <button id="switchUserBtn" class="btn-text-xs" type="button">Otro usuario</button>
-        </div>
+      <div class="login-logo">
+        <span class="login-logo-mark">✦</span>
+        <span class="login-logo-name">Kiki's</span>
+        <span class="login-logo-sub">Control de gastos</span>
       </div>
-      <div id="passwordMode">
-        <form id="loginForm" class="auth-form">
-          <input id="loginUser" type="text"     placeholder="Usuario"    autocomplete="username"         spellcheck="false" required>
-          <input id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password" required>
-          <button class="btn-auth" type="submit">Entrar</button>
-          <p id="loginError" class="auth-error" hidden>Usuario o contraseña incorrectos.</p>
-          <button id="showRegisterBtn" class="btn-text-xs" type="button" style="margin-top:10px">Crear cuenta nueva</button>
-        </form>
-        <form id="registerForm" class="auth-form" hidden>
-          <input id="regUser"  type="text"     placeholder="Elegí un usuario"     autocomplete="username"     spellcheck="false" required>
-          <input id="regPass"  type="password" placeholder="Contraseña"           autocomplete="new-password" required>
-          <input id="regPass2" type="password" placeholder="Repetí la contraseña" autocomplete="new-password" required>
-          <button class="btn-auth" type="submit">Crear cuenta</button>
-          <p id="registerError" class="auth-error" hidden></p>
-          <button id="showLoginBtn" class="btn-text-xs" type="button" style="margin-top:10px">Ya tengo cuenta</button>
-        </form>
+      <div class="login-card">
+        <div id="biometricMode" hidden>
+          <div class="bio-user">
+            <div class="bio-initial" id="bioInitial">?</div>
+            <span id="bioName">Usuario</span>
+          </div>
+          <button id="biometricBtn" class="btn-biometric" type="button">
+            <svg class="faceid-svg" viewBox="0 0 24 24" fill="none">
+              <path d="M7 3H5a2 2 0 00-2 2v2M17 3h2a2 2 0 012 2v2M7 21H5a2 2 0 01-2-2v-2M17 21h2a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <circle cx="9" cy="10.5" r="1.1" fill="currentColor"/>
+              <circle cx="15" cy="10.5" r="1.1" fill="currentColor"/>
+              <path d="M9 15.5c.8 1.4 5.2 1.4 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            Entrar con Face ID
+          </button>
+          <p id="biometricError" class="auth-error" hidden>No se pudo verificar. Usá tu contraseña.</p>
+          <div class="bio-links">
+            <button id="usePwdBtn"     class="btn-text-xs" type="button">Usar contraseña</button>
+            <span class="bio-dot">·</span>
+            <button id="switchUserBtn" class="btn-text-xs" type="button">Otro usuario</button>
+          </div>
+        </div>
+        <div id="passwordMode">
+          <form id="loginForm" class="auth-form">
+            <input id="loginUser" type="text"     placeholder="Usuario"    autocomplete="username"         spellcheck="false" required>
+            <input id="loginPass" type="password" placeholder="Contraseña" autocomplete="current-password" required>
+            <button class="btn-auth" type="submit">Entrar</button>
+            <p id="loginError" class="auth-error" hidden>Usuario o contraseña incorrectos.</p>
+            <button id="showRegisterBtn" class="btn-text-xs" type="button" style="margin-top:10px">Crear cuenta nueva</button>
+          </form>
+          <form id="registerForm" class="auth-form" hidden>
+            <input id="regUser"  type="text"     placeholder="Elegí un usuario"     autocomplete="username"     spellcheck="false" required>
+            <input id="regPass"  type="password" placeholder="Contraseña"           autocomplete="new-password" required>
+            <input id="regPass2" type="password" placeholder="Repetí la contraseña" autocomplete="new-password" required>
+            <button class="btn-auth" type="submit">Crear cuenta</button>
+            <p id="registerError" class="auth-error" hidden></p>
+            <button id="showLoginBtn" class="btn-text-xs" type="button" style="margin-top:10px">Ya tengo cuenta</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
@@ -89,6 +99,7 @@
       <section id="view-inicio" class="view active">
 
         <div class="hero-card" id="heroCard">
+          <div class="hero-mesh" aria-hidden="true"></div>
           <span class="hero-eyebrow">Balance del mes</span>
           <strong class="hero-balance" id="balanceAmt">$0</strong>
           <div class="hero-row">
@@ -108,6 +119,19 @@
         <div class="stats-row">
           <div class="stat-card today"><span>Hoy</span><strong id="todayAmt">$0</strong></div>
           <div class="stat-card avg"><span>Promedio diario</span><strong id="avgAmt">$0</strong></div>
+        </div>
+
+        <!-- Monthly Goal -->
+        <div class="surface-card" id="goalSection" hidden>
+          <div class="card-row-header">
+            <span class="card-label">Meta de ahorro</span>
+            <span id="goalPct" class="card-label-muted">0%</span>
+          </div>
+          <div class="goal-amounts">
+            <span id="goalSaved"></span>
+            <span id="goalTarget"></span>
+          </div>
+          <div class="goal-track"><div class="goal-fill" id="goalFill"></div></div>
         </div>
 
         <!-- Donut -->
@@ -292,6 +316,10 @@
             <button class="btn-pink" type="submit">Agregar fijo</button>
           </form>
 
+          <h3 class="modal-sec">Meta de ahorro mensual</h3>
+          <p class="modal-hint">¿Cuánto querés ahorrar este mes?</p>
+          <input type="number" id="monthlyGoalInput" class="field" placeholder="0" min="0" step="0.01" inputmode="decimal">
+
           <h3 class="modal-sec">Face ID / Biometría</h3>
           <p class="modal-hint" id="biometricHint">Verificando…</p>
           <button id="setupBiometricBtn" class="btn-outlined" type="button" hidden>
@@ -367,14 +395,15 @@
         </div>
         <div class="tx-end">
           <b class="tx-amt"></b>
-          <button class="tx-del" type="button">✕</button>
+          <button class="tx-edit" type="button" title="Editar">✎</button>
+          <button class="tx-del" type="button" title="Eliminar">✕</button>
         </div>
       </div>
     </template>
 
   </div><!-- /appRoot -->
 
-  <script src="config.js?v=7"></script>
-  <script src="app.js?v=9"></script>
+  <script src="config.js?v=1" defer></script>
+  <script src="app.js?v=1" defer></script>
 </body>
 </html>

@@ -310,6 +310,8 @@ let selectedExpCat = "Comida";
 let selectedIncCat = "Familiar";
 let addType = "expense";
 let paymentModalLoanId = null;
+let editingTxId   = null;
+let editingTxType = null;
 
 // ════════════════════════════════════════════════════════════
 // UTILS
@@ -375,6 +377,7 @@ function renderAll() {
 
   renderBudgets(mExp);
   renderDonut(mExp);
+  renderMonthlyGoal(balance);
   renderTxList();
   renderLoans();
   document.getElementById("addCurrSymbol").textContent = getCurrencySymbol();
@@ -411,9 +414,18 @@ const DONUT_COLORS = ["#be185d","#7c3aed","#ea580c","#d97706","#059669","#0891b2
 function renderDonut(mExp) {
   const section = document.getElementById("donutSection");
   const total   = sum(mExp);
-  if (total === 0) { section.hidden = true; return; }
   section.hidden = false;
   document.getElementById("donutMonth").textContent = monthLabel(currentMonth);
+
+  const svg = document.getElementById("donutSvg");
+  svg.querySelectorAll(".donut-seg").forEach(el => el.remove());
+
+  if (total === 0) {
+    document.getElementById("donutMainPct").textContent = "—";
+    document.getElementById("donutMainCat").textContent = "";
+    document.getElementById("donutLegend").innerHTML = '<li class="donut-leg-empty">Sin gastos este mes</li>';
+    return;
+  }
 
   const byCat = {};
   mExp.forEach(e => { byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount); });
@@ -421,8 +433,6 @@ function renderDonut(mExp) {
     .map(([cat, amt]) => ({ cat, amt, pct: (amt / total) * 100 }))
     .sort((a, b) => b.amt - a.amt).slice(0, 7);
 
-  const svg = document.getElementById("donutSvg");
-  svg.querySelectorAll(".donut-seg").forEach(el => el.remove());
   const r = 45, circ = 2 * Math.PI * r;
   let accum = 0;
   segs.forEach((seg, i) => {
@@ -450,6 +460,21 @@ function renderDonut(mExp) {
       <span class="donut-leg-name">${esc(s.cat)}</span>
       <span class="donut-leg-pct">${Math.round(s.pct)}%</span>
     </li>`).join("");
+}
+
+function renderMonthlyGoal(balance) {
+  const goal    = Number(settings.monthlyGoal || 0);
+  const section = document.getElementById("goalSection");
+  if (!goal) { section.hidden = true; return; }
+  section.hidden = false;
+  const saved = Math.max(0, balance);
+  const pct   = Math.min(100, Math.max(0, (saved / goal) * 100));
+  document.getElementById("goalPct").textContent    = Math.round(pct) + "%";
+  document.getElementById("goalSaved").textContent  = fmt(saved) + " ahorrado";
+  document.getElementById("goalTarget").textContent = "Meta: " + fmt(goal);
+  const fill = document.getElementById("goalFill");
+  fill.style.width      = pct + "%";
+  fill.style.background = pct >= 100 ? "var(--income)" : pct >= 50 ? "#fcd34d" : "var(--primary)";
 }
 
 function renderTxList() {
@@ -500,6 +525,7 @@ function renderTxList() {
     const amt = node.querySelector(".tx-amt");
     amt.textContent = (tx.type === "expense" ? "−" : "+") + fmt(tx.amount);
     amt.classList.add(tx.type);
+    node.querySelector(".tx-edit").addEventListener("click", () => openEditTx(tx));
     node.querySelector(".tx-del").addEventListener("click", () => {
       if (tx.type === "expense") { expenses = expenses.filter(e => e.id !== tx.id); persist(KEY.expenses, expenses); }
       else                       { income   = income.filter(i => i.id !== tx.id);   persist(KEY.income, income); }
@@ -635,15 +661,38 @@ function openAddModal() {
   document.getElementById("addModal").hidden = false;
   setTimeout(() => document.getElementById("addAmount").focus(), 60);
 }
-function closeAddModal() { document.getElementById("addModal").hidden = true; }
+function closeAddModal() {
+  document.getElementById("addModal").hidden = true;
+  editingTxId = null;
+  editingTxType = null;
+}
+
+function openEditTx(tx) {
+  editingTxId   = tx.id;
+  editingTxType = tx.type;
+  setAddType(tx.type === "expense" ? "expense" : "income");
+  if (tx.type === "expense") selectedExpCat = tx.category;
+  else                       selectedIncCat = tx.category;
+  rebuildAddChips();
+  document.getElementById("addAmount").value = tx.amount;
+  document.getElementById("addNote").value   = tx.note || "";
+  document.getElementById("addDate").value   = tx.date;
+  document.getElementById("addCurrSymbol").textContent = getCurrencySymbol();
+  document.getElementById("addSaveBtn").textContent    = "Guardar cambios";
+  document.getElementById("addSaveBtn").className      = "btn-pink";
+  document.getElementById("addModal").hidden = false;
+  setTimeout(() => document.getElementById("addAmount").focus(), 60);
+}
 
 function setAddType(type) {
   addType = type;
   const isExp = type === "expense";
   document.getElementById("addTypeExpense").classList.toggle("active", isExp);
   document.getElementById("addTypeIncome").classList.toggle("active",  !isExp);
-  document.getElementById("addSaveBtn").textContent = isExp ? "Guardar gasto" : "Guardar ingreso";
-  document.getElementById("addSaveBtn").className   = isExp ? "btn-pink" : "btn-success";
+  if (!editingTxId) {
+    document.getElementById("addSaveBtn").textContent = isExp ? "Guardar gasto" : "Guardar ingreso";
+    document.getElementById("addSaveBtn").className   = isExp ? "btn-pink" : "btn-success";
+  }
   rebuildAddChips();
 }
 function rebuildAddChips() {
@@ -692,6 +741,7 @@ function buildCatFilter() {
 function openSettings() {
   document.getElementById("settingsUserSub").textContent = `@${currentUser}`;
   document.getElementById("currencySelect").value = settings.currency || "BOB";
+  document.getElementById("monthlyGoalInput").value = settings.monthlyGoal || "";
   const { url, key, table } = getSupaCreds();
   document.getElementById("supabaseUrl").value = url || "";
   document.getElementById("supabaseKey").value = key || "";
@@ -724,7 +774,8 @@ function closeSettings() {
   persist(KEY.budgets, budgets);
   const cur = document.getElementById("currencySelect").value;
   const localeMap = { BOB:"es-BO", ARS:"es-AR", USD:"en-US", CLP:"es-CL", PEN:"es-PE", MXN:"es-MX", COP:"es-CO", UYU:"es-UY", PYG:"es-PY" };
-  settings.currency = cur; settings.locale = localeMap[cur] || "es";
+  settings.currency    = cur; settings.locale = localeMap[cur] || "es";
+  settings.monthlyGoal = Number(document.getElementById("monthlyGoalInput").value) || 0;
   persist(KEY.settings, settings);
   document.getElementById("settingsModal").hidden = true;
   renderAll(); autoSync();
@@ -856,12 +907,25 @@ function attachAppListeners() {
     if (!amount || amount <= 0) return;
     const note = document.getElementById("addNote").value.trim();
     const date = document.getElementById("addDate").value;
-    if (addType === "expense") {
-      expenses.push({ id: crypto.randomUUID(), amount, category: selectedExpCat, date, note, createdAt: Date.now() });
-      persist(KEY.expenses, expenses);
+    const cat  = addType === "expense" ? selectedExpCat : selectedIncCat;
+    if (editingTxId) {
+      if (editingTxType === "expense") {
+        const idx = expenses.findIndex(e => e.id === editingTxId);
+        if (idx !== -1) expenses[idx] = { ...expenses[idx], amount, category: cat, date, note };
+        persist(KEY.expenses, expenses);
+      } else {
+        const idx = income.findIndex(i => i.id === editingTxId);
+        if (idx !== -1) income[idx] = { ...income[idx], amount, category: cat, date, note };
+        persist(KEY.income, income);
+      }
     } else {
-      income.push({ id: crypto.randomUUID(), amount, category: selectedIncCat, date, note, createdAt: Date.now() });
-      persist(KEY.income, income);
+      if (addType === "expense") {
+        expenses.push({ id: crypto.randomUUID(), amount, category: selectedExpCat, date, note, createdAt: Date.now() });
+        persist(KEY.expenses, expenses);
+      } else {
+        income.push({ id: crypto.randomUUID(), amount, category: selectedIncCat, date, note, createdAt: Date.now() });
+        persist(KEY.income, income);
+      }
     }
     closeAddModal();
     renderAll(); autoSync();
