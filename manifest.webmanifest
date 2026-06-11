@@ -1,0 +1,18 @@
+{
+  "name": "Kiki's",
+  "short_name": "Kiki's",
+  "description": "Control de gastos personal",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0616",
+  "theme_color": "#0c0616",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
