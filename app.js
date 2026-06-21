@@ -145,7 +145,7 @@ function supaHeaders() {
   return { "Content-Type": "application/json", "apikey": key, "Authorization": `Bearer ${key}` };
 }
 function syncKeys() {
-  return [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans, KEY.accounts, KEY.goals];
+  return [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans, KEY.accounts, KEY.goals, KEY.myDebts];
 }
 function saveLastSync() {
   localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
@@ -226,6 +226,7 @@ async function syncDownload() {
   loans     = load(KEY.loans,     []);
   accounts  = load(KEY.accounts,  []);
   goals     = load(KEY.goals,     []);
+  myDebts   = load(KEY.myDebts,   []);
   renderAll();
   saveLastSync();
 }
@@ -305,14 +306,16 @@ const KEY = {
   get loans()     { return `mb:${currentUser}:loans:v1`;     },
   get accounts()  { return `mb:${currentUser}:accounts:v1`;  },
   get goals()     { return `mb:${currentUser}:goals:v1`;     },
+  get myDebts()   { return `mb:${currentUser}:myDebts:v1`;   },
 };
 
-let expenses  = [], income = [], budgets = {}, recurring = [], settings = {}, loans = [], accounts = [], goals = [];
+let expenses  = [], income = [], budgets = {}, recurring = [], settings = {}, loans = [], accounts = [], goals = [], myDebts = [];
 let currentMonth = "";
 let selectedExpCat = "Comida";
 let selectedIncCat = "Familiar";
 let addType = "expense";
 let paymentModalLoanId = null;
+let myDebtPayModalId   = null;
 let editingTxId   = null;
 let editingTxType = null;
 
@@ -345,6 +348,9 @@ function monthLabel(ym) {
 function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 function loanPending(l) {
   return Math.max(0, Number(l.amount) - l.repayments.reduce((t, r) => t + Number(r.amount), 0));
+}
+function myDebtPending(d) {
+  return Math.max(0, Number(d.amount) - d.repayments.reduce((t, r) => t + Number(r.amount), 0));
 }
 function getCurrencySymbol() {
   return { BOB:"Bs", ARS:"$", USD:"US$", CLP:"$", PEN:"S/", MXN:"$", COP:"$", UYU:"$", PYG:"₲" }[settings.currency || "BOB"] || "$";
@@ -402,6 +408,7 @@ function renderAll() {
   renderMonthlyGoal(balance);
   renderTxList();
   renderLoans();
+  renderMyDebts();
   renderTrends();
   renderNetWorth();
   renderGoals();
@@ -879,6 +886,85 @@ function renderLoans() {
   });
 }
 
+function renderMyDebts() {
+  const list   = document.getElementById("myDebtList");
+  const empty  = document.getElementById("myDebtsEmpty");
+  const banner = document.getElementById("myDebtsOverview");
+  if (!list) return;
+
+  const active = myDebts.filter(d => !d.settled && myDebtPending(d) > 0);
+  list.innerHTML = "";
+  empty.hidden = active.length > 0;
+
+  if (!banner) return;
+  if (active.length === 0) { banner.hidden = true; return; }
+
+  const total = active.reduce((t, d) => t + myDebtPending(d), 0);
+  banner.hidden = false;
+  document.getElementById("myDebtsCountLabel").textContent =
+    active.length === 1 ? "1 deuda que tenés" : `${active.length} deudas que tenés`;
+  document.getElementById("myDebtsTotalAmt").textContent = fmt(total) + " que debés";
+
+  active.forEach(debt => {
+    const repaid  = debt.repayments.reduce((t, r) => t + Number(r.amount), 0);
+    const pending = myDebtPending(debt);
+    const pct     = Math.min((repaid / Number(debt.amount)) * 100, 100);
+    const div = document.createElement("div");
+    div.className = "loan-item";
+    div.innerHTML = `
+      <div class="loan-main">
+        <div class="loan-avatar" style="background:rgba(252,165,165,0.12);border-color:rgba(252,165,165,0.2);color:var(--expense)">${esc(debt.person.charAt(0))}</div>
+        <div class="loan-info">
+          <strong class="loan-person">${esc(debt.person)}</strong>
+          <span class="loan-detail">Debés ${fmt(debt.amount)} · ${fmtDate(debt.date)}${debt.note ? " · " + esc(debt.note) : ""}</span>
+          ${repaid > 0 ? `<span class="loan-repaid">Pagaste ${fmt(repaid)}</span>` : ""}
+        </div>
+        <div class="loan-badge"><b style="color:var(--expense)">${fmt(pending)}</b><span>pendiente</span></div>
+      </div>
+      <div class="loan-prog"><div class="loan-prog-fill" style="background:var(--expense);width:${pct}%"></div></div>
+      <div class="loan-btns">
+        <button class="btn-loan-pay btn-loan-pay-debt" type="button">💸 Pagar</button>
+        <button class="btn-loan-settle" type="button">Saldada ✓</button>
+        <button class="btn-loan-del" type="button">✕</button>
+      </div>`;
+
+    div.querySelector(".btn-loan-pay").addEventListener("click", () => openMyDebtPayModal(debt));
+    div.querySelector(".btn-loan-settle").addEventListener("click", () => {
+      const i = myDebts.findIndex(d => d.id === debt.id);
+      if (i !== -1) { myDebts[i].settled = true; persist(KEY.myDebts, myDebts); renderMyDebts(); autoSync(); }
+    });
+    div.querySelector(".btn-loan-del").addEventListener("click", () => {
+      if (!confirm(`¿Eliminar la deuda con ${debt.person}?`)) return;
+      myDebts = myDebts.filter(d => d.id !== debt.id);
+      persist(KEY.myDebts, myDebts); renderMyDebts(); autoSync();
+    });
+    list.append(div);
+  });
+}
+
+function openMyDebtPayModal(debt) {
+  myDebtPayModalId = debt.id;
+  document.getElementById("myDebtPayTitle").textContent   = `Pagar a ${debt.person}`;
+  document.getElementById("myDebtPayPending").textContent = fmt(myDebtPending(debt));
+  document.getElementById("myDebtPayAmount").value = "";
+  document.getElementById("myDebtPayDate").value   = todayIso();
+  const sel = document.getElementById("myDebtPayAccount");
+  sel.innerHTML = '<option value="">— Sin cuenta —</option>';
+  accounts.filter(a => a.type === "asset").forEach(acc => {
+    const opt = document.createElement("option");
+    opt.value = acc.id;
+    opt.textContent = `${acc.icon || "🏦"} ${acc.name} · ${fmt(acc.balance)}`;
+    sel.append(opt);
+  });
+  document.getElementById("myDebtPayModal").hidden = false;
+  setTimeout(() => document.getElementById("myDebtPayAmount").focus(), 50);
+}
+
+function closeMyDebtPayModal() {
+  document.getElementById("myDebtPayModal").hidden = true;
+  myDebtPayModalId = null;
+}
+
 function openPaymentModal(loan) {
   paymentModalLoanId = loan.id;
   document.getElementById("paymentModalTitle").textContent   = `${loan.person} te pagó`;
@@ -1142,6 +1228,7 @@ function startApp(username) {
   loans     = load(KEY.loans,     []);
   accounts  = load(KEY.accounts,  []);
   goals     = load(KEY.goals,     []);
+  myDebts   = load(KEY.myDebts,   []);
 
   const themes = { "taisiña": "tais", "ikersiño": "iker" };
   document.body.dataset.theme = themes[currentUser] || "";
@@ -1347,8 +1434,8 @@ function attachAppListeners() {
 
   document.getElementById("deleteAllBtn").addEventListener("click", () => {
     if (!confirm(`¿Borrar todos los datos de ${currentUser}?`)) return;
-    expenses = []; income = []; budgets = {}; recurring = []; loans = []; accounts = []; goals = [];
-    [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans, KEY.accounts, KEY.goals].forEach(k => localStorage.removeItem(k));
+    expenses = []; income = []; budgets = {}; recurring = []; loans = []; accounts = []; goals = []; myDebts = [];
+    [KEY.expenses, KEY.income, KEY.budgets, KEY.recurring, KEY.settings, KEY.loans, KEY.accounts, KEY.goals, KEY.myDebts].forEach(k => localStorage.removeItem(k));
     document.getElementById("settingsModal").hidden = true;
     renderAll();
   });
@@ -1472,6 +1559,81 @@ function attachAppListeners() {
     try   { await syncDownload(); startCloudPolling(); showSyncStatus("Datos bajados.", "ok"); }
     catch (err) { showSyncStatus("Error: " + err.message, "err"); }
     finally { btn.disabled = false; btn.style.opacity = ""; }
+  });
+
+  // ── Debt tabs ──────────────────────────────────────────────
+  document.getElementById("tabMeDeben").addEventListener("click", () => {
+    document.getElementById("sectionMeDeben").hidden = false;
+    document.getElementById("sectionLesDebo").hidden = true;
+    document.getElementById("tabMeDeben").classList.add("active");
+    document.getElementById("tabLesDebo").classList.remove("active");
+  });
+  document.getElementById("tabLesDebo").addEventListener("click", () => {
+    document.getElementById("sectionMeDeben").hidden = true;
+    document.getElementById("sectionLesDebo").hidden = false;
+    document.getElementById("tabLesDebo").classList.add("active");
+    document.getElementById("tabMeDeben").classList.remove("active");
+  });
+
+  // My debts banner → go to "Les debo" tab
+  document.getElementById("myDebtsOverview").addEventListener("click", () => {
+    showView("deudas");
+    document.getElementById("tabLesDebo").click();
+  });
+
+  // Add my debt form
+  document.getElementById("addMyDebtToggle").addEventListener("click", () => {
+    const form = document.getElementById("newMyDebtForm");
+    form.hidden = !form.hidden;
+    if (!form.hidden) {
+      document.getElementById("myDebtDate").value = todayIso();
+      setTimeout(() => document.getElementById("myDebtAmount").focus(), 50);
+    }
+  });
+
+  document.getElementById("saveMyDebtBtn").addEventListener("click", () => {
+    const amount = Number(document.getElementById("myDebtAmount").value);
+    const person = document.getElementById("myDebtPerson").value.trim();
+    const note   = document.getElementById("myDebtNote").value.trim();
+    const date   = document.getElementById("myDebtDate").value;
+    if (!amount || !person) return;
+    myDebts.push({ id: crypto.randomUUID(), person, amount, date, note, createdAt: Date.now(), repayments: [], settled: false });
+    persist(KEY.myDebts, myDebts);
+    document.getElementById("myDebtAmount").value = "";
+    document.getElementById("myDebtPerson").value = "";
+    document.getElementById("myDebtNote").value   = "";
+    document.getElementById("newMyDebtForm").hidden = true;
+    renderMyDebts(); autoSync();
+  });
+
+  // My debt payment modal
+  document.getElementById("closeMyDebtPayModal").addEventListener("click", closeMyDebtPayModal);
+  document.getElementById("myDebtPayModal").addEventListener("click", e => { if (e.target === e.currentTarget) closeMyDebtPayModal(); });
+
+  document.getElementById("confirmMyDebtPayBtn").addEventListener("click", () => {
+    const amount    = Number(document.getElementById("myDebtPayAmount").value);
+    const accountId = document.getElementById("myDebtPayAccount").value || null;
+    const date      = document.getElementById("myDebtPayDate").value;
+    if (!amount || !myDebtPayModalId) return;
+    const i = myDebts.findIndex(d => d.id === myDebtPayModalId);
+    if (i === -1) { closeMyDebtPayModal(); return; }
+    myDebts[i].repayments.push({ id: crypto.randomUUID(), amount, date, accountId, createdAt: Date.now() });
+    if (accountId) updateAccountBalance(accountId, -amount);
+    if (myDebtPending(myDebts[i]) <= 0) myDebts[i].settled = true;
+    persist(KEY.myDebts, myDebts);
+    closeMyDebtPayModal(); renderMyDebts(); renderNetWorth(); autoSync();
+  });
+
+  document.getElementById("settleMyDebtFullBtn").addEventListener("click", () => {
+    if (!myDebtPayModalId) return;
+    const i = myDebts.findIndex(d => d.id === myDebtPayModalId);
+    if (i === -1) { closeMyDebtPayModal(); return; }
+    const accountId = document.getElementById("myDebtPayAccount").value || null;
+    const pending   = myDebtPending(myDebts[i]);
+    if (accountId && pending > 0) updateAccountBalance(accountId, -pending);
+    myDebts[i].settled = true;
+    persist(KEY.myDebts, myDebts);
+    closeMyDebtPayModal(); renderMyDebts(); renderNetWorth(); autoSync();
   });
 }
 

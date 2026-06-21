@@ -185,6 +185,16 @@
           <span class="loans-banner-chevron">›</span>
         </button>
 
+        <!-- My debts banner -->
+        <button class="loans-banner" id="myDebtsOverview" type="button" hidden>
+          <span class="loans-banner-icon" style="background:rgba(252,165,165,0.12);border-color:rgba(252,165,165,0.18)">🤝</span>
+          <div class="loans-banner-text">
+            <span id="myDebtsCountLabel"></span>
+            <strong id="myDebtsTotalAmt" style="color:var(--expense)"></strong>
+          </div>
+          <span class="loans-banner-chevron">›</span>
+        </button>
+
         <!-- Budget -->
         <div class="surface-card" id="budgetPanel" hidden>
           <span class="card-label">Presupuesto</span>
@@ -260,24 +270,57 @@
 
       <!-- DEUDAS -->
       <section id="view-deudas" class="view">
-        <div class="view-topbar">
-          <span class="card-label">Deudas pendientes</span>
-          <button id="addLoanToggle" class="btn-sm-pink" type="button">+ Anotar</button>
+
+        <!-- Tabs -->
+        <div class="debt-tabs">
+          <button class="debt-tab active" id="tabMeDeben" type="button">💵 Me deben</button>
+          <button class="debt-tab" id="tabLesDebo" type="button">🤝 Les debo</button>
         </div>
-        <p class="info-note">Tocá <strong>💵 Recibí pago</strong> para descontar cuando te paguen.</p>
-        <div id="newLoanForm" class="inline-form" hidden>
-          <div class="big-num-field">
-            <input id="loanAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
+
+        <!-- Me deben -->
+        <div id="sectionMeDeben">
+          <div class="view-topbar">
+            <span class="card-label">Deudas pendientes</span>
+            <button id="addLoanToggle" class="btn-sm-pink" type="button">+ Anotar</button>
           </div>
-          <input id="loanPerson" type="text" placeholder="¿Quién te debe?" class="field" autocomplete="off">
-          <input id="loanNote"   type="text" placeholder="Nota (opcional)"  class="field" autocomplete="off">
-          <input id="loanDate"   type="date" class="field">
-          <button id="saveLoanBtn" class="btn-pink" type="button">Guardar deuda</button>
+          <p class="info-note">Tocá <strong>💵 Recibí pago</strong> para descontar cuando te paguen.</p>
+          <div id="newLoanForm" class="inline-form" hidden>
+            <div class="big-num-field">
+              <input id="loanAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
+            </div>
+            <input id="loanPerson" type="text" placeholder="¿Quién te debe?" class="field" autocomplete="off">
+            <input id="loanNote"   type="text" placeholder="Nota (opcional)"  class="field" autocomplete="off">
+            <input id="loanDate"   type="date" class="field">
+            <button id="saveLoanBtn" class="btn-pink" type="button">Guardar deuda</button>
+          </div>
+          <div id="loanList"></div>
+          <div id="loansEmpty" class="empty-state" hidden>
+            <span>🤝</span><p>Sin deudas pendientes</p>
+          </div>
         </div>
-        <div id="loanList"></div>
-        <div id="loansEmpty" class="empty-state" hidden>
-          <span>🤝</span><p>Sin deudas pendientes</p>
+
+        <!-- Les debo -->
+        <div id="sectionLesDebo" hidden>
+          <div class="view-topbar">
+            <span class="card-label">Lo que debo</span>
+            <button id="addMyDebtToggle" class="btn-sm-pink" type="button">+ Anotar</button>
+          </div>
+          <p class="info-note">Tocá <strong>💸 Pagar</strong> para registrar el pago y descontar de tu cuenta.</p>
+          <div id="newMyDebtForm" class="inline-form" hidden>
+            <div class="big-num-field">
+              <input id="myDebtAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
+            </div>
+            <input id="myDebtPerson" type="text" placeholder="¿A quién le debés?" class="field" autocomplete="off">
+            <input id="myDebtNote"   type="text" placeholder="Nota (opcional)"  class="field" autocomplete="off">
+            <input id="myDebtDate"   type="date" class="field">
+            <button id="saveMyDebtBtn" class="btn-pink" type="button">Guardar deuda</button>
+          </div>
+          <div id="myDebtList"></div>
+          <div id="myDebtsEmpty" class="empty-state" hidden>
+            <span>🎉</span><p>¡Sin deudas pendientes!</p>
+          </div>
         </div>
+
       </section>
 
       <!-- FIJOS -->
@@ -509,6 +552,28 @@
           <input id="paymentDate" type="date" class="field">
           <button id="confirmPaymentBtn" class="btn-pink"    type="button">Descontar de la deuda</button>
           <button id="settleFullBtn"     class="btn-success" type="button">Deuda saldada total ✓</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── My-debt pay modal ── -->
+    <div id="myDebtPayModal" class="modal" hidden>
+      <div class="modal-box compact">
+        <div class="modal-hdr">
+          <div>
+            <h2 id="myDebtPayTitle">Registrar pago</h2>
+            <p class="modal-hint">Pendiente: <strong id="myDebtPayPending"></strong></p>
+          </div>
+          <button id="closeMyDebtPayModal" class="close-btn" type="button">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="big-num-field">
+            <input id="myDebtPayAmount" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" autocomplete="off">
+          </div>
+          <select id="myDebtPayAccount" class="field"></select>
+          <input id="myDebtPayDate" type="date" class="field">
+          <button id="confirmMyDebtPayBtn" class="btn-pink" type="button">Registrar pago</button>
+          <button id="settleMyDebtFullBtn" class="btn-success" type="button">Deuda saldada total ✓</button>
         </div>
       </div>
     </div>
