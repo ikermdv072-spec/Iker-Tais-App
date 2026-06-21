@@ -1230,7 +1230,7 @@ function startApp(username) {
   goals     = load(KEY.goals,     []);
   myDebts   = load(KEY.myDebts,   []);
 
-  const themes = { "taisiña": "tais", "ikersiño": "iker" };
+  const themes = { "taisiña": "tais", "ikerm973": "iker" };
   document.body.dataset.theme = themes[currentUser] || "";
 
   document.getElementById("userInitial").textContent  = username.charAt(0).toUpperCase();
@@ -1715,7 +1715,7 @@ document.getElementById("switchUserBtn").addEventListener("click", () => {
 (async function init() {
   const users = loadUsers();
   if (!users["taisiña"])  await createAccount("Taisiña",  "Taisonlybirdies1");
-  if (!users["ikersiño"]) await createAccount("Ikersiño", "8790");
+  if (!users["ikerm973"]) await createAccount("Ikerm973", "8790");
 
   applySetupFromUrl();
   const activeSession = getSession();
